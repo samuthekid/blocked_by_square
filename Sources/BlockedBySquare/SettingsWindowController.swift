@@ -1,11 +1,32 @@
 import AppKit
 import ServiceManagement
+import SwiftUI
+
+private struct LaunchToggle: View {
+    @State private var isOn: Bool
+
+    init() {
+        _isOn = State(initialValue: SMAppService.mainApp.status == .enabled)
+    }
+
+    var body: some View {
+        Toggle("", isOn: $isOn)
+            .toggleStyle(.switch)
+            .labelsHidden()
+            .onChange(of: isOn) { newValue in
+                if newValue {
+                    try? SMAppService.mainApp.register()
+                } else {
+                    try? SMAppService.mainApp.unregister()
+                }
+            }
+    }
+}
 
 class SettingsWindowController: NSWindowController, NSWindowDelegate {
     private var shortcutField: ShortcutField!
     private var topPhraseField: NSTextField!
     private var bottomPhraseField: NSTextField!
-    private var launchAtLoginCheckbox: NSButton!
 
     convenience init() {
         let window = NSWindow(
@@ -25,12 +46,14 @@ class SettingsWindowController: NSWindowController, NSWindowDelegate {
         guard let cv = window?.contentView else { return }
 
         // ── Shortcut card ────────────────────────────────────────────────────────
-        cv.addSubview(makeCard(frame: NSRect(x: 16, y: 290, width: 468, height: 76)))
+        cv.addSubview(makeCard(frame: NSRect(x: 16, y: 290, width: 468, height: 60)))
 
-        addLabel("Activation shortcut:", to: cv,
-                 frame: NSRect(x: 28, y: 336, width: 130, height: 24))
+        let shortcutLabel = NSTextField(labelWithString: "Activation shortcut")
+        shortcutLabel.font = .systemFont(ofSize: 13)
+        shortcutLabel.frame = NSRect(x: 28, y: 310, width: 220, height: 20)
+        cv.addSubview(shortcutLabel)
 
-        shortcutField = ShortcutField(frame: NSRect(x: 164, y: 336, width: 176, height: 24))
+        shortcutField = ShortcutField(frame: NSRect(x: 306, y: 308, width: 162, height: 24))
         shortcutField.isBordered = true
         shortcutField.bezelStyle = .roundedBezel
         shortcutField.alignment = .center
@@ -47,19 +70,17 @@ class SettingsWindowController: NSWindowController, NSWindowDelegate {
         }
         cv.addSubview(shortcutField)
 
-        cv.addSubview(makeHintLabel(
-            "Click the field, then press your shortcut. ESC cancels.",
-            frame: NSRect(x: 164, y: 314, width: 308, height: 16)
-        ))
-
         // ── Launch at Login card ─────────────────────────────────────────────────
         cv.addSubview(makeCard(frame: NSRect(x: 16, y: 220, width: 468, height: 60)))
 
-        launchAtLoginCheckbox = NSButton(checkboxWithTitle: "Open at login",
-                                         target: nil, action: nil)
-        launchAtLoginCheckbox.frame = NSRect(x: 28, y: 239, width: 200, height: 22)
-        launchAtLoginCheckbox.state = SMAppService.mainApp.status == .enabled ? .on : .off
-        cv.addSubview(launchAtLoginCheckbox)
+        let loginLabel = NSTextField(labelWithString: "Open at login")
+        loginLabel.font = .systemFont(ofSize: 13)
+        loginLabel.frame = NSRect(x: 28, y: 239, width: 220, height: 22)
+        cv.addSubview(loginLabel)
+
+        let toggleHost = NSHostingView(rootView: LaunchToggle())
+        toggleHost.frame = NSRect(x: 418, y: 234, width: 50, height: 31)
+        cv.addSubview(toggleHost)
 
         // ── Text card ────────────────────────────────────────────────────────────
         cv.addSubview(makeCard(frame: NSRect(x: 16, y: 76, width: 468, height: 130)))
@@ -115,21 +136,11 @@ class SettingsWindowController: NSWindowController, NSWindowDelegate {
 
     @objc private func save() {
         commitPhrases()
-        applyLaunchAtLogin()
         window?.close()
-    }
-
-    private func applyLaunchAtLogin() {
-        if launchAtLoginCheckbox.state == .on {
-            try? SMAppService.mainApp.register()
-        } else {
-            try? SMAppService.mainApp.unregister()
-        }
     }
 
     func windowWillClose(_ notification: Notification) {
         commitPhrases()
-        applyLaunchAtLogin()
     }
 
     private func commitPhrases() {
