@@ -11,7 +11,7 @@
 - You stepped away for 30 seconds and came back to a Slack message you definitely did not send
 - You just want people to know: this screen is occupied, this is intentional, and yes, it looks sick
 
-**Open app → press shortcut to block input → press ESC to lock the screen → sign back in.**
+**Use shortcut to enable "block" mode → press ESC to lock the screen → sign back in.**
 
 Locking the screen to unlock means only the Mac owner can resume — no passerby can just tap a key and keep going.
 
