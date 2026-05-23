@@ -1,13 +1,15 @@
 import AppKit
+import ServiceManagement
 
 class SettingsWindowController: NSWindowController, NSWindowDelegate {
     private var shortcutField: ShortcutField!
     private var topPhraseField: NSTextField!
     private var bottomPhraseField: NSTextField!
+    private var launchAtLoginCheckbox: NSButton!
 
     convenience init() {
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 500, height: 310),
+            contentRect: NSRect(x: 0, y: 0, width: 500, height: 380),
             styleMask: [.titled, .closable],
             backing: .buffered,
             defer: false
@@ -23,12 +25,12 @@ class SettingsWindowController: NSWindowController, NSWindowDelegate {
         guard let cv = window?.contentView else { return }
 
         // ── Shortcut card ────────────────────────────────────────────────────────
-        cv.addSubview(makeCard(frame: NSRect(x: 16, y: 220, width: 468, height: 76)))
+        cv.addSubview(makeCard(frame: NSRect(x: 16, y: 290, width: 468, height: 76)))
 
         addLabel("Activation shortcut:", to: cv,
-                 frame: NSRect(x: 28, y: 266, width: 130, height: 24))
+                 frame: NSRect(x: 28, y: 336, width: 130, height: 24))
 
-        shortcutField = ShortcutField(frame: NSRect(x: 164, y: 266, width: 176, height: 24))
+        shortcutField = ShortcutField(frame: NSRect(x: 164, y: 336, width: 176, height: 24))
         shortcutField.isBordered = true
         shortcutField.bezelStyle = .roundedBezel
         shortcutField.alignment = .center
@@ -47,8 +49,17 @@ class SettingsWindowController: NSWindowController, NSWindowDelegate {
 
         cv.addSubview(makeHintLabel(
             "Click the field, then press your shortcut. ESC cancels.",
-            frame: NSRect(x: 164, y: 244, width: 308, height: 16)
+            frame: NSRect(x: 164, y: 314, width: 308, height: 16)
         ))
+
+        // ── Launch at Login card ─────────────────────────────────────────────────
+        cv.addSubview(makeCard(frame: NSRect(x: 16, y: 220, width: 468, height: 60)))
+
+        launchAtLoginCheckbox = NSButton(checkboxWithTitle: "Open at login",
+                                         target: nil, action: nil)
+        launchAtLoginCheckbox.frame = NSRect(x: 28, y: 239, width: 200, height: 22)
+        launchAtLoginCheckbox.state = SMAppService.mainApp.status == .enabled ? .on : .off
+        cv.addSubview(launchAtLoginCheckbox)
 
         // ── Text card ────────────────────────────────────────────────────────────
         cv.addSubview(makeCard(frame: NSRect(x: 16, y: 76, width: 468, height: 130)))
@@ -104,11 +115,21 @@ class SettingsWindowController: NSWindowController, NSWindowDelegate {
 
     @objc private func save() {
         commitPhrases()
+        applyLaunchAtLogin()
         window?.close()
+    }
+
+    private func applyLaunchAtLogin() {
+        if launchAtLoginCheckbox.state == .on {
+            try? SMAppService.mainApp.register()
+        } else {
+            try? SMAppService.mainApp.unregister()
+        }
     }
 
     func windowWillClose(_ notification: Notification) {
         commitPhrases()
+        applyLaunchAtLogin()
     }
 
     private func commitPhrases() {
