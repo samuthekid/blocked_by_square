@@ -8,11 +8,12 @@
 
 - You're flexing 4 Claude terminals in parallel and _cannot_ let someone break your token chain combo
 - Your cat has opinions about your planning session and types them directly into your terminal
-- You're demoing something live and your coworker reaches for your trackpad
 - You stepped away for 30 seconds and came back to a Slack message you definitely did not send
 - You just want people to know: this screen is occupied, this is intentional, and yes, it looks sick
 
-BlockedBySquare sits in your menu bar, intercepts every keystroke and click system-wide, and lets you lock your screen with a single key combo. Press **ESC** to lock and return to idle.
+**Open app → press shortcut to block input → press ESC to lock the screen → sign back in.**
+
+Locking the screen to unlock means only the Mac owner can resume — no passerby can just tap a key and keep going.
 
 <p align="center"><img src="blockedbysquare_demo.png" alt="BlockedBySquare Demo" width="400" /></p>
 
