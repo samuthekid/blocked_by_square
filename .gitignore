@@ -1,0 +1,17 @@
+# Swift Package Manager
+.build/
+*.resolved
+
+# Xcode
+*.xcodeproj/
+*.xcworkspace/
+xcuserdata/
+DerivedData/
+.swiftpm/
+
+# macOS
+.DS_Store
+*.app/
+
+# Build artifacts
+bundle.sh.bak
