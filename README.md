@@ -1,12 +1,20 @@
 # BlockedBySquare
 
-<img src="blockedbysquare_logo.png" alt="BlockedBySquare Logo" width="400" />
+<p align="center"><img src="blockedbysquare_logo.png" alt="BlockedBySquare Logo" width="400" /></p>
 
-Lock your Mac in style.
+**Lock your Mac in style.** Block all input system-wide and wrap your cursor in a glowing glass square — because sometimes you just need the world to stop touching your keyboard.
 
-BlockedBySquare lives in the menu bar and blocks all keyboard and mouse input on demand, wrapping your cursor in a glowing glass square so everyone knows the screen is intentionally locked. Press **ESC** to lock the screen and return the app to idle.
+**Perfect for when:**
 
-![BlockedBySquare Demo](blockedbysquare_demo.png)
+- You're flexing 4 Claude terminals in parallel and _cannot_ let someone break your token chain combo
+- Your cat has opinions about your planning session and types them directly into your terminal
+- You're demoing something live and your coworker reaches for your trackpad
+- You stepped away for 30 seconds and came back to a Slack message you definitely did not send
+- You just want people to know: this screen is occupied, this is intentional, and yes, it looks sick
+
+BlockedBySquare sits in your menu bar, intercepts every keystroke and click system-wide, and lets you lock your screen with a single key combo. Press **ESC** to lock and return to idle.
+
+<p align="center"><img src="blockedbysquare_demo.png" alt="BlockedBySquare Demo" width="400" /></p>
 
 ---
 
