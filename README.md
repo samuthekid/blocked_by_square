@@ -1,5 +1,7 @@
 # BlockedBySquare
 
+![BlockedBySquare Logo](blockedbysquare_logo.png)
+
 Lock your Mac in style.
 
 BlockedBySquare lives in the menu bar and blocks all keyboard and mouse input on demand, wrapping your cursor in a glowing glass square so everyone knows the screen is intentionally locked. Press **ESC** to lock the screen and return the app to idle.
