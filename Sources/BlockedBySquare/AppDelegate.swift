@@ -2,6 +2,7 @@ import AppKit
 
 class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem?
+    private var lockMenuItem: NSMenuItem?
     private var settingsController: SettingsWindowController?
 
     // Lock-mode state
@@ -28,7 +29,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         let menu = NSMenu()
-        menu.addItem(NSMenuItem(title: "Lock Now", action: #selector(lockNow), keyEquivalent: ""))
+        let lockItem = NSMenuItem(title: "Lock Now", action: #selector(lockNow), keyEquivalent: "")
+        lockItem.image = NSImage(systemSymbolName: "lock.fill", accessibilityDescription: nil)
+        applyShortcutDisplay(to: lockItem)
+        lockMenuItem = lockItem
+        menu.addItem(lockItem)
         menu.addItem(.separator())
         menu.addItem(NSMenuItem(title: "Settings…", action: #selector(openSettings), keyEquivalent: ","))
         menu.addItem(.separator())
@@ -68,6 +73,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     func updateGlobalShortcut() {
         setupGlobalShortcut()
+        applyShortcutDisplay(to: lockMenuItem)
+    }
+
+    private func applyShortcutDisplay(to item: NSMenuItem?) {
+        item?.keyEquivalent = keyCodeToMenuEquivalent(Settings.shared.shortcutKeyCode)
+        item?.keyEquivalentModifierMask = NSEvent.ModifierFlags(rawValue: Settings.shared.shortcutModifiers)
     }
 
     // MARK: - Lock Mode

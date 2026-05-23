@@ -70,6 +70,26 @@ func formatShortcut(keyCode: Int, modifiers: NSEvent.ModifierFlags) -> String {
     return s
 }
 
+// Maps a keycode to the single-character string NSMenuItem expects for keyEquivalent.
+// Letters are lowercase; NSMenu uppercases them when .shift is in keyEquivalentModifierMask.
+func keyCodeToMenuEquivalent(_ code: Int) -> String {
+    let map: [Int: String] = [
+        0: "a", 1: "s", 2: "d", 3: "f", 4: "h", 5: "g", 6: "z", 7: "x",
+        8: "c", 9: "v", 11: "b", 12: "q", 13: "w", 14: "e", 15: "r",
+        16: "y", 17: "t", 18: "1", 19: "2", 20: "3", 21: "4", 22: "6",
+        23: "5", 24: "=", 25: "9", 26: "7", 27: "-", 28: "8", 29: "0",
+        30: "]", 31: "o", 32: "u", 33: "[", 34: "i", 35: "p", 37: "l",
+        38: "j", 39: "'", 40: "k", 41: ";", 42: "\\", 43: ",", 44: "/",
+        45: "n", 46: "m", 47: ".", 50: "`",
+        36: "\r", 48: "\t", 49: " ", 51: "\u{8}",
+        123: "\u{F702}", 124: "\u{F703}", 125: "\u{F701}", 126: "\u{F700}",
+        122: "\u{F704}", 120: "\u{F705}", 99: "\u{F706}", 118: "\u{F707}",
+        96: "\u{F708}", 97: "\u{F709}", 98: "\u{F70A}", 100: "\u{F70B}",
+        101: "\u{F70C}", 109: "\u{F70D}", 103: "\u{F70E}", 111: "\u{F70F}",
+    ]
+    return map[code] ?? ""
+}
+
 private func keyCodeToString(_ code: Int) -> String {
     let map: [Int: String] = [
         0: "A", 1: "S", 2: "D", 3: "F", 4: "H", 5: "G", 6: "Z", 7: "X",
