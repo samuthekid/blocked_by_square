@@ -1,64 +1,130 @@
 import AppKit
 
 class AppDelegate: NSObject, NSApplicationDelegate {
-    var overlayWindows: [OverlayWindow] = []
+    private var statusItem: NSStatusItem?
+    private var settingsController: SettingsWindowController?
+
+    // Lock-mode state
+    private var overlayWindows: [OverlayWindow] = []
     var eventTap: CFMachPort?
+    private var mouseTimer: Timer?
+    private(set) var isLocked = false
+
+    // Global shortcut monitor (active only when NOT in lock mode)
+    private var hotkeyMonitor: Any?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         if !checkAccessibility() { return }
-        setupWindows()
-        setupEventTap()
-        setupMouseTracking()
-        NSApp.activate(ignoringOtherApps: true)
+        setupStatusBar()
+        setupGlobalShortcut()
     }
 
-    private func checkAccessibility() -> Bool {
-        let trusted = AXIsProcessTrustedWithOptions(
-            [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: false] as CFDictionary
-        )
+    // MARK: - Menu Bar
 
-        if !trusted {
-            AXIsProcessTrustedWithOptions(
-                [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
-            )
-
-            let alert = NSAlert()
-            alert.messageText = "Accessibility Permission Required"
-            alert.informativeText = """
-                BlockedBySquare needs Accessibility access to block keyboard and mouse input.
-
-                1. Click "Open System Settings" below
-                2. Find "BlockedBySquare" (or Terminal) and toggle it ON
-                3. Reopen BlockedBySquare
-                """
-            alert.addButton(withTitle: "Open System Settings")
-            alert.addButton(withTitle: "Quit")
-            alert.alertStyle = .warning
-
-            let response = alert.runModal()
-            if response == .alertFirstButtonReturn {
-                if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") {
-                    NSWorkspace.shared.open(url)
-                }
-            }
-            NSApp.terminate(nil)
-            return false
+    private func setupStatusBar() {
+        statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
+        if let btn = statusItem?.button {
+            btn.image = NSImage(systemSymbolName: "lock.square.fill", accessibilityDescription: "BlockedBySquare")
         }
-        return true
+
+        let menu = NSMenu()
+        menu.addItem(NSMenuItem(title: "Lock Now", action: #selector(lockNow), keyEquivalent: ""))
+        menu.addItem(.separator())
+        menu.addItem(NSMenuItem(title: "Settings…", action: #selector(openSettings), keyEquivalent: ","))
+        menu.addItem(.separator())
+        menu.addItem(NSMenuItem(title: "Quit BlockedBySquare", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
+        statusItem?.menu = menu
     }
 
-    private func setupWindows() {
+    @objc private func lockNow() {
+        activateLockMode()
+    }
+
+    @objc private func openSettings() {
+        if settingsController == nil {
+            settingsController = SettingsWindowController()
+        }
+        NSApp.activate(ignoringOtherApps: true)
+        settingsController?.showWindow(nil)
+        settingsController?.window?.makeKeyAndOrderFront(nil)
+    }
+
+    // MARK: - Global Shortcut
+
+    func setupGlobalShortcut() {
+        if let old = hotkeyMonitor { NSEvent.removeMonitor(old); hotkeyMonitor = nil }
+
+        let targetCode = Settings.shared.shortcutKeyCode
+        let targetMods = NSEvent.ModifierFlags(rawValue: Settings.shared.shortcutModifiers)
+
+        hotkeyMonitor = NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            guard let self, !self.isLocked else { return }
+            let mods = event.modifierFlags.intersection([.command, .shift, .control, .option])
+            if Int(event.keyCode) == targetCode && mods == targetMods {
+                DispatchQueue.main.async { self.activateLockMode() }
+            }
+        }
+    }
+
+    func updateGlobalShortcut() {
+        setupGlobalShortcut()
+    }
+
+    // MARK: - Lock Mode
+
+    private func activateLockMode() {
+        guard !isLocked else { return }
+        isLocked = true
+
+        // Tear down shortcut monitor — the event tap blocks everything during lock
+        if let m = hotkeyMonitor { NSEvent.removeMonitor(m); hotkeyMonitor = nil }
+
         for screen in NSScreen.screens {
             let window = OverlayWindow(screen: screen)
             overlayWindows.append(window)
             window.makeKeyAndOrderFront(nil)
         }
+        updateOverlayPhrases()
+
+        startMouseTracking()
+        startEventTap()
+        NSApp.activate(ignoringOtherApps: true)
     }
 
-    // Polls the global cursor position at 60 Hz and routes it to the correct window.
-    // This is more reliable than NSEvent routing for cross-monitor tracking.
-    private func setupMouseTracking() {
-        Timer.scheduledTimer(withTimeInterval: 1.0 / 60.0, repeats: true) { [weak self] _ in
+    func deactivateLockMode() {
+        guard isLocked else { return }
+        isLocked = false
+
+        mouseTimer?.invalidate()
+        mouseTimer = nil
+
+        if let tap = eventTap {
+            CGEvent.tapEnable(tap: tap, enable: false)
+            eventTap = nil
+        }
+
+        lockScreen()
+
+        for w in overlayWindows { w.close() }
+        overlayWindows.removeAll()
+
+        // Re-arm the global shortcut after a short delay so the ESC key event
+        // dispatched during deactivation doesn't accidentally re-trigger anything.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
+            self?.setupGlobalShortcut()
+        }
+    }
+
+    func updateOverlayPhrases() {
+        let top    = Settings.shared.topPhrase
+        let bottom = Settings.shared.bottomPhrase
+        for w in overlayWindows { w.updatePhrases(top: top, bottom: bottom) }
+    }
+
+    // MARK: - Mouse Tracking
+
+    private func startMouseTracking() {
+        mouseTimer = Timer.scheduledTimer(withTimeInterval: 1.0 / 60.0, repeats: true) { [weak self] _ in
             guard let self else { return }
             let pos = NSEvent.mouseLocation
             for window in self.overlayWindows {
@@ -72,7 +138,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    func setupEventTap() {
+    // MARK: - Event Tap
+
+    private func startEventTap() {
         let eventsToCapture: [CGEventType] = [
             .keyDown, .keyUp, .flagsChanged,
             .leftMouseDown, .leftMouseUp,
@@ -81,15 +149,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             .scrollWheel
         ]
 
-        let eventMask = eventsToCapture.reduce(CGEventMask(0)) { mask, type in
-            mask | (1 << type.rawValue)
-        }
+        let mask = eventsToCapture.reduce(CGEventMask(0)) { $0 | (1 << $1.rawValue) }
 
         guard let tap = CGEvent.tapCreate(
             tap: .cgSessionEventTap,
             place: .headInsertEventTap,
             options: .defaultTap,
-            eventsOfInterest: eventMask,
+            eventsOfInterest: mask,
             callback: globalEventCallback,
             userInfo: Unmanaged.passUnretained(self).toOpaque()
         ) else {
@@ -97,29 +163,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
 
-        self.eventTap = tap
+        eventTap = tap
         let source = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, tap, 0)
         CFRunLoopAddSource(CFRunLoopGetMain(), source, .commonModes)
         CGEvent.tapEnable(tap: tap, enable: true)
     }
 
-    func lockAndQuit() {
-        // Disable event tap first so the Ctrl+Cmd+Q fallback in lockScreen() isn't
-        // swallowed by our own tap (which returns nil for every event).
-        if let tap = eventTap {
-            CGEvent.tapEnable(tap: tap, enable: false)
-        }
-        lockScreen()
-        for w in overlayWindows { w.close() }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
-            NSApp.terminate(nil)
-        }
-    }
+    // MARK: - Screen Lock
 
     private func lockScreen() {
-        // Primary: SACLockScreenImmediate from the private Login framework.
-        // Correct framework: /System/Library/PrivateFrameworks/login.framework/login
-        // Correct symbol: SACLockScreenImmediate (no trailing "ly")
         if let handle = dlopen(
             "/System/Library/PrivateFrameworks/login.framework/login",
             RTLD_LAZY | RTLD_LOCAL
@@ -130,8 +182,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
 
-        // Fallback: inject Ctrl+Cmd+Q (lock screen shortcut since macOS High Sierra).
-        // Event tap is already disabled above, so this reaches loginwindow unimpeded.
+        // Fallback: Ctrl+Cmd+Q. Tap is already disabled so this reaches loginwindow.
         let src = CGEventSource(stateID: .privateState)
         for down in [true, false] {
             guard let e = CGEvent(keyboardEventSource: src, virtualKey: 12, keyDown: down) else { continue }
@@ -139,7 +190,38 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             e.post(tap: .cghidEventTap)
         }
     }
+
+    // MARK: - Accessibility Check
+
+    private func checkAccessibility() -> Bool {
+        let key = kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String
+        if AXIsProcessTrustedWithOptions([key: false] as CFDictionary) { return true }
+
+        AXIsProcessTrustedWithOptions([key: true] as CFDictionary)
+
+        let alert = NSAlert()
+        alert.messageText = "Accessibility Permission Required"
+        alert.informativeText = """
+            BlockedBySquare needs Accessibility access to block keyboard and mouse input.
+
+            1. Click "Open System Settings" below
+            2. Find "BlockedBySquare" (or Terminal) and toggle it ON
+            3. Reopen BlockedBySquare
+            """
+        alert.addButton(withTitle: "Open System Settings")
+        alert.addButton(withTitle: "Quit")
+        alert.alertStyle = .warning
+
+        if alert.runModal() == .alertFirstButtonReturn,
+           let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") {
+            NSWorkspace.shared.open(url)
+        }
+        NSApp.terminate(nil)
+        return false
+    }
 }
+
+// MARK: - CGEvent Tap Callback (C function)
 
 private func globalEventCallback(
     proxy: CGEventTapProxy,
@@ -151,19 +233,13 @@ private func globalEventCallback(
     let delegate = Unmanaged<AppDelegate>.fromOpaque(refcon).takeUnretainedValue()
 
     if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
-        if let tap = delegate.eventTap {
-            CGEvent.tapEnable(tap: tap, enable: true)
-        }
+        if let tap = delegate.eventTap { CGEvent.tapEnable(tap: tap, enable: true) }
         return nil
     }
 
-    if type == .keyDown {
-        let keyCode = event.getIntegerValueField(.keyboardEventKeycode)
-        if keyCode == 53 {
-            DispatchQueue.main.async { delegate.lockAndQuit() }
-            return nil
-        }
+    if type == .keyDown, event.getIntegerValueField(.keyboardEventKeycode) == 53 {
+        DispatchQueue.main.async { delegate.deactivateLockMode() }
     }
 
-    return nil
+    return nil // swallow every event while locked
 }

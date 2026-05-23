@@ -11,14 +11,11 @@ class OverlayWindow: NSWindow {
             defer: false
         )
 
-        // One below screenSaverWindow so NSVisualEffectView behindWindow blending
-        // is allowed by the compositor (it is disabled above screenSaverWindow level).
-        // The CGEvent tap blocks all input regardless of window level.
         self.level = NSWindow.Level(rawValue: Int(CGWindowLevelForKey(.screenSaverWindow)) - 1)
         self.backgroundColor = .clear
         self.isOpaque = false
         self.hasShadow = false
-        self.ignoresMouseEvents = true  // blocking is handled by the CGEvent tap globally
+        self.ignoresMouseEvents = true
         self.isReleasedWhenClosed = false
         self.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary]
 
@@ -30,11 +27,7 @@ class OverlayWindow: NSWindow {
     override var canBecomeKey: Bool { false }
     override var canBecomeMain: Bool { false }
 
-    func showSquare(at localPos: CGPoint) {
-        content.showSquare(at: localPos)
-    }
-
-    func hideSquare() {
-        content.hideSquare()
-    }
+    func showSquare(at localPos: CGPoint) { content.showSquare(at: localPos) }
+    func hideSquare()                     { content.hideSquare() }
+    func updatePhrases(top: String, bottom: String) { content.updatePhrases(top: top, bottom: bottom) }
 }

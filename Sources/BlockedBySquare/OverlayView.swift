@@ -1,9 +1,12 @@
 import AppKit
 
 class OverlayView: NSView {
-    private let container = NSView()   // unclipped, carries the glow/shadow
-    private let square    = NSView()   // clipped to rounded corners
+    private let container   = NSView()
+    private let square      = NSView()
     private let squareSize: CGFloat = 200
+
+    private let topTextLayer    = CATextLayer()
+    private let bottomTextLayer = CATextLayer()
 
     override init(frame: NSRect) {
         super.init(frame: frame)
@@ -33,13 +36,11 @@ class OverlayView: NSView {
             width: squareSize, height: squareSize
         )
 
-        // Semi-transparent white base — window is .clear so the desktop shows through
         let fill = CALayer()
         fill.backgroundColor = NSColor.white.withAlphaComponent(0.22).cgColor
         fill.frame = CGRect(origin: .zero, size: size)
         square.layer?.addSublayer(fill)
 
-        // Specular highlight — simulates light hitting the glass surface
         let highlight = CAGradientLayer()
         highlight.colors = [
             NSColor.white.withAlphaComponent(0.45).cgColor,
@@ -51,6 +52,32 @@ class OverlayView: NSView {
         highlight.endPoint   = CGPoint(x: 1.0, y: 0.0)
         highlight.frame = CGRect(origin: .zero, size: size)
         square.layer?.addSublayer(highlight)
+
+        // Phrase text layers — square's CALayer has y=0 at bottom (non-flipped NSView)
+        let scale = NSScreen.main?.backingScaleFactor ?? 2.0
+        let textFont = NSFont.systemFont(ofSize: 13, weight: .medium) as CTFont
+
+        for layer in [topTextLayer, bottomTextLayer] {
+            layer.font = textFont
+            layer.fontSize = 13
+            layer.foregroundColor = NSColor.white.withAlphaComponent(0.92).cgColor
+            layer.alignmentMode = .center
+            layer.isWrapped = true
+            layer.truncationMode = .end
+            layer.contentsScale = scale
+            // Disable implicit animations so phrases appear/disappear instantly
+            layer.actions = ["contents": NSNull()]
+            square.layer?.addSublayer(layer)
+        }
+
+        // Top phrase: frame top = y+height = 175 → 25px from the top edge of the 200px square.
+        // CATextLayer renders from the frame's top downward, so text starts 25px from the top.
+        topTextLayer.frame    = CGRect(x: 12, y: 120, width: 176, height: 55)
+
+        // Bottom phrase: frame top (maxY) ≈ 42px from bottom → single-line text (~16px)
+        // ends at ≈26px from the bottom edge, matching the top phrase's ~25px top padding.
+        bottomTextLayer.frame    = CGRect(x: 12, y: 20, width: 176, height: 22)
+        bottomTextLayer.isWrapped = false
     }
 
     required init?(coder: NSCoder) { fatalError() }
@@ -65,5 +92,10 @@ class OverlayView: NSView {
 
     func hideSquare() {
         container.isHidden = true
+    }
+
+    func updatePhrases(top: String, bottom: String) {
+        topTextLayer.string    = top
+        bottomTextLayer.string = bottom
     }
 }
