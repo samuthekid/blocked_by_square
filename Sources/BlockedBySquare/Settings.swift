@@ -30,4 +30,35 @@ final class Settings {
         get { defaults.string(forKey: "bottomPhrase") ?? "" }
         set { defaults.set(newValue, forKey: "bottomPhrase") }
     }
+
+    var squareOpacity: Double {
+        get { defaults.object(forKey: "squareOpacity") as? Double ?? 0.8 }
+        set { defaults.set(newValue, forKey: "squareOpacity") }
+    }
+
+    var topPhraseColor: NSColor {
+        get {
+            guard let data = defaults.data(forKey: "topPhraseColor"),
+                  let color = try? NSKeyedUnarchiver.unarchivedObject(ofClass: NSColor.self, from: data)
+            else { return .white }
+            return color
+        }
+        set {
+            let data = try? NSKeyedArchiver.archivedData(withRootObject: newValue, requiringSecureCoding: false)
+            defaults.set(data, forKey: "topPhraseColor")
+        }
+    }
+
+    var bottomPhraseColor: NSColor {
+        get {
+            guard let data = defaults.data(forKey: "bottomPhraseColor"),
+                  let color = try? NSKeyedUnarchiver.unarchivedObject(ofClass: NSColor.self, from: data)
+            else { return .white }
+            return color
+        }
+        set {
+            let data = try? NSKeyedArchiver.archivedData(withRootObject: newValue, requiringSecureCoding: false)
+            defaults.set(data, forKey: "bottomPhraseColor")
+        }
+    }
 }

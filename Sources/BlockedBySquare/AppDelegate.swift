@@ -96,6 +96,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             window.makeKeyAndOrderFront(nil)
         }
         updateOverlayPhrases()
+        updateOverlayOpacity()
+        updateOverlayTextColors()
 
         startMouseTracking()
         startEventTap()
@@ -130,6 +132,17 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let top    = Settings.shared.topPhrase
         let bottom = Settings.shared.bottomPhrase
         for w in overlayWindows { w.updatePhrases(top: top, bottom: bottom) }
+    }
+
+    func updateOverlayOpacity() {
+        let opacity = Settings.shared.squareOpacity
+        for w in overlayWindows { w.updateOpacity(opacity) }
+    }
+
+    func updateOverlayTextColors() {
+        let top    = Settings.shared.topPhraseColor
+        let bottom = Settings.shared.bottomPhraseColor
+        for w in overlayWindows { w.updateTextColors(top: top, bottom: bottom) }
     }
 
     // MARK: - Mouse Tracking

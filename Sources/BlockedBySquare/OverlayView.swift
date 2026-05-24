@@ -1,8 +1,10 @@
 import AppKit
+import SwiftUI
 
 class OverlayView: NSView {
-    private let container   = NSView()
-    private let square      = NSView()
+    private let container = NSView()
+    private var glassView: NSView!
+    private let textView  = NSView()
     private let squareSize: CGFloat = 200
 
     private let topTextLayer    = CATextLayer()
@@ -13,70 +15,79 @@ class OverlayView: NSView {
         wantsLayer = true
 
         container.wantsLayer = true
-        container.layer?.shadowColor   = NSColor.white.withAlphaComponent(0.75).cgColor
-        container.layer?.shadowRadius  = 28
-        container.layer?.shadowOpacity = 1.0
-        container.layer?.shadowOffset  = .zero
         container.isHidden = true
         addSubview(container)
 
-        square.wantsLayer = true
-        square.layer?.cornerRadius  = 20
-        square.layer?.cornerCurve   = .continuous
-        square.layer?.masksToBounds = true
-        square.layer?.borderColor   = NSColor.white.withAlphaComponent(0.65).cgColor
-        square.layer?.borderWidth   = 1.0
-        container.addSubview(square)
+        let size      = CGSize(width: squareSize, height: squareSize)
+        let squareRect = CGRect(origin: .zero, size: size)
 
-        let size = CGSize(width: squareSize, height: squareSize)
-        square.frame    = CGRect(origin: .zero, size: size)
+        if #available(macOS 26.0, *) {
+            let hosting = NSHostingView(rootView: GlassSquareView())
+            hosting.frame = squareRect
+            hosting.wantsLayer = true
+            hosting.layer?.shadowColor   = NSColor.white.withAlphaComponent(0.75).cgColor
+            hosting.layer?.shadowRadius  = 28
+            hosting.layer?.shadowOpacity = 1.0
+            hosting.layer?.shadowOffset  = .zero
+            glassView = hosting
+        } else {
+            let vfx = NSVisualEffectView(frame: squareRect)
+            vfx.material     = .hudWindow
+            vfx.blendingMode = .behindWindow
+            vfx.state        = .active
+            vfx.wantsLayer   = true
+            vfx.layer?.cornerRadius  = 20
+            vfx.layer?.cornerCurve   = .continuous
+            vfx.layer?.masksToBounds = true
+            vfx.layer?.borderColor   = NSColor.white.withAlphaComponent(0.40).cgColor
+            vfx.layer?.borderWidth   = 0.75
+            vfx.layer?.shadowColor   = NSColor.white.withAlphaComponent(0.75).cgColor
+            vfx.layer?.shadowRadius  = 28
+            vfx.layer?.shadowOpacity = 1.0
+            vfx.layer?.shadowOffset  = .zero
+            let highlight = CAGradientLayer()
+            highlight.colors     = [
+                NSColor.white.withAlphaComponent(0.18).cgColor,
+                NSColor.white.withAlphaComponent(0.04).cgColor,
+                NSColor.white.withAlphaComponent(0.0).cgColor,
+            ]
+            highlight.locations  = [0.0, 0.45, 0.80]
+            highlight.startPoint = CGPoint(x: 0.0, y: 1.0)
+            highlight.endPoint   = CGPoint(x: 1.0, y: 0.0)
+            highlight.frame      = CGRect(origin: .zero, size: size)
+            vfx.layer?.addSublayer(highlight)
+            glassView = vfx
+        }
+        container.addSubview(glassView)
+
+        // Text lives in its own view — opacity changes never touch it
+        textView.wantsLayer = true
+        textView.frame = squareRect
+        container.addSubview(textView)
+
         container.frame = CGRect(
             x: (frame.width  - squareSize) / 2,
             y: (frame.height - squareSize) / 2,
             width: squareSize, height: squareSize
         )
 
-        let fill = CALayer()
-        fill.backgroundColor = NSColor.white.withAlphaComponent(0.22).cgColor
-        fill.frame = CGRect(origin: .zero, size: size)
-        square.layer?.addSublayer(fill)
-
-        let highlight = CAGradientLayer()
-        highlight.colors = [
-            NSColor.white.withAlphaComponent(0.45).cgColor,
-            NSColor.white.withAlphaComponent(0.08).cgColor,
-            NSColor.white.withAlphaComponent(0.0).cgColor,
-        ]
-        highlight.locations  = [0.0, 0.45, 0.80]
-        highlight.startPoint = CGPoint(x: 0.0, y: 1.0)
-        highlight.endPoint   = CGPoint(x: 1.0, y: 0.0)
-        highlight.frame = CGRect(origin: .zero, size: size)
-        square.layer?.addSublayer(highlight)
-
-        // Phrase text layers — square's CALayer has y=0 at bottom (non-flipped NSView)
-        let scale = NSScreen.main?.backingScaleFactor ?? 2.0
+        let scale    = NSScreen.main?.backingScaleFactor ?? 2.0
         let textFont = NSFont.systemFont(ofSize: 13, weight: .medium) as CTFont
 
         for layer in [topTextLayer, bottomTextLayer] {
-            layer.font = textFont
-            layer.fontSize = 13
+            layer.font            = textFont
+            layer.fontSize        = 13
             layer.foregroundColor = NSColor.white.withAlphaComponent(0.92).cgColor
-            layer.alignmentMode = .center
-            layer.isWrapped = true
-            layer.truncationMode = .end
-            layer.contentsScale = scale
-            // Disable implicit animations so phrases appear/disappear instantly
-            layer.actions = ["contents": NSNull()]
-            square.layer?.addSublayer(layer)
+            layer.alignmentMode   = .center
+            layer.isWrapped       = true
+            layer.truncationMode  = .end
+            layer.contentsScale   = scale
+            layer.actions         = ["contents": NSNull()]
+            textView.layer?.addSublayer(layer)
         }
 
-        // Top phrase: frame top = y+height = 175 → 25px from the top edge of the 200px square.
-        // CATextLayer renders from the frame's top downward, so text starts 25px from the top.
         topTextLayer.frame    = CGRect(x: 12, y: 120, width: 176, height: 55)
-
-        // Bottom phrase: frame top (maxY) ≈ 42px from bottom → single-line text (~16px)
-        // ends at ≈26px from the bottom edge, matching the top phrase's ~25px top padding.
-        bottomTextLayer.frame    = CGRect(x: 12, y: 20, width: 176, height: 22)
+        bottomTextLayer.frame = CGRect(x: 12, y: 20, width: 176, height: 22)
         bottomTextLayer.isWrapped = false
     }
 
@@ -97,5 +108,24 @@ class OverlayView: NSView {
     func updatePhrases(top: String, bottom: String) {
         topTextLayer.string    = top
         bottomTextLayer.string = bottom
+    }
+
+    func updateTextColors(top: NSColor, bottom: NSColor) {
+        topTextLayer.foregroundColor    = top.cgColor
+        bottomTextLayer.foregroundColor = bottom.cgColor
+    }
+
+    func updateOpacity(_ opacity: Double) {
+        glassView.alphaValue = CGFloat(opacity)
+    }
+}
+
+@available(macOS 26.0, *)
+private struct GlassSquareView: View {
+    var body: some View {
+        Rectangle()
+            .fill(.clear)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
     }
 }

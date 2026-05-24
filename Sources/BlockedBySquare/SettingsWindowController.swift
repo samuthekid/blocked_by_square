@@ -27,10 +27,15 @@ class SettingsWindowController: NSWindowController, NSWindowDelegate {
     private var shortcutField: ShortcutField!
     private var topPhraseField: NSTextField!
     private var bottomPhraseField: NSTextField!
+    private var topColorWell: NSColorWell!
+    private var bottomColorWell: NSColorWell!
+    private var opacitySlider: NSSlider!
+    private var opacityValueLabel: NSTextField!
+    private var previewWindow: PreviewWindow?
 
     convenience init() {
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 500, height: 380),
+            contentRect: NSRect(x: 0, y: 0, width: 500, height: 450),
             styleMask: [.titled, .closable],
             backing: .buffered,
             defer: false
@@ -42,18 +47,46 @@ class SettingsWindowController: NSWindowController, NSWindowDelegate {
         buildUI()
     }
 
+    override func showWindow(_ sender: Any?) {
+        super.showWindow(sender)
+        showPreview()
+    }
+
+    private func showPreview() {
+        guard let settingsWindow = window else { return }
+
+        let pw: PreviewWindow
+        if let existing = previewWindow {
+            pw = existing
+        } else {
+            pw = PreviewWindow()
+            previewWindow = pw
+        }
+
+        let gap: CGFloat = 20
+        let origin = NSPoint(
+            x: settingsWindow.frame.midX - pw.frame.width / 2,
+            y: settingsWindow.frame.minY - gap - pw.frame.height
+        )
+        pw.setFrameOrigin(origin)
+
+        if pw.parent == nil {
+            settingsWindow.addChildWindow(pw, ordered: .below)
+        }
+    }
+
     private func buildUI() {
         guard let cv = window?.contentView else { return }
 
         // ── Shortcut card ────────────────────────────────────────────────────────
-        cv.addSubview(makeCard(frame: NSRect(x: 16, y: 290, width: 468, height: 60)))
+        cv.addSubview(makeCard(frame: NSRect(x: 16, y: 360, width: 468, height: 60)))
 
         let shortcutLabel = NSTextField(labelWithString: "Activation shortcut")
         shortcutLabel.font = .systemFont(ofSize: 13)
-        shortcutLabel.frame = NSRect(x: 28, y: 310, width: 220, height: 20)
+        shortcutLabel.frame = NSRect(x: 28, y: 380, width: 220, height: 20)
         cv.addSubview(shortcutLabel)
 
-        shortcutField = ShortcutField(frame: NSRect(x: 306, y: 308, width: 162, height: 24))
+        shortcutField = ShortcutField(frame: NSRect(x: 306, y: 378, width: 162, height: 24))
         shortcutField.isBordered = true
         shortcutField.bezelStyle = .roundedBezel
         shortcutField.alignment = .center
@@ -71,16 +104,38 @@ class SettingsWindowController: NSWindowController, NSWindowDelegate {
         cv.addSubview(shortcutField)
 
         // ── Launch at Login card ─────────────────────────────────────────────────
-        cv.addSubview(makeCard(frame: NSRect(x: 16, y: 220, width: 468, height: 60)))
+        cv.addSubview(makeCard(frame: NSRect(x: 16, y: 290, width: 468, height: 60)))
 
         let loginLabel = NSTextField(labelWithString: "Open at login")
         loginLabel.font = .systemFont(ofSize: 13)
-        loginLabel.frame = NSRect(x: 28, y: 239, width: 220, height: 22)
+        loginLabel.frame = NSRect(x: 28, y: 309, width: 220, height: 22)
         cv.addSubview(loginLabel)
 
         let toggleHost = NSHostingView(rootView: LaunchToggle())
-        toggleHost.frame = NSRect(x: 418, y: 234, width: 50, height: 31)
+        toggleHost.frame = NSRect(x: 418, y: 304, width: 50, height: 31)
         cv.addSubview(toggleHost)
+
+        // ── Opacity card ─────────────────────────────────────────────────────────
+        cv.addSubview(makeCard(frame: NSRect(x: 16, y: 220, width: 468, height: 60)))
+
+        let opacityLabel = NSTextField(labelWithString: "Square opacity")
+        opacityLabel.font = .systemFont(ofSize: 13)
+        opacityLabel.frame = NSRect(x: 28, y: 239, width: 140, height: 22)
+        cv.addSubview(opacityLabel)
+
+        let currentOpacity = Settings.shared.squareOpacity
+        opacitySlider = NSSlider(value: currentOpacity, minValue: 0.1, maxValue: 1.0,
+                                 target: self, action: #selector(opacitySliderChanged(_:)))
+        opacitySlider.frame = NSRect(x: 174, y: 234, width: 216, height: 24)
+        opacitySlider.isContinuous = true
+        cv.addSubview(opacitySlider)
+
+        opacityValueLabel = NSTextField(labelWithString: "\(Int(currentOpacity * 100))%")
+        opacityValueLabel.font = .monospacedSystemFont(ofSize: 12, weight: .regular)
+        opacityValueLabel.textColor = .secondaryLabelColor
+        opacityValueLabel.alignment = .right
+        opacityValueLabel.frame = NSRect(x: 394, y: 239, width: 46, height: 18)
+        cv.addSubview(opacityValueLabel)
 
         // ── Text card ────────────────────────────────────────────────────────────
         cv.addSubview(makeCard(frame: NSRect(x: 16, y: 76, width: 468, height: 130)))
@@ -103,18 +158,32 @@ class SettingsWindowController: NSWindowController, NSWindowDelegate {
         ))
 
         addLabel("Top phrase:", to: cv, frame: NSRect(x: 28, y: 122, width: 130, height: 24))
-        topPhraseField = makeTextField(frame: NSRect(x: 164, y: 122, width: 244, height: 24),
+        topPhraseField = makeTextField(frame: NSRect(x: 164, y: 122, width: 196, height: 24),
                                        placeholder: "Optional")
         topPhraseField.stringValue = Settings.shared.topPhrase
         cv.addSubview(topPhraseField)
-        cv.addSubview(makeEmojiButton(tag: 0, frame: NSRect(x: 412, y: 123, width: 52, height: 22)))
+        topColorWell = makeColorWell(tag: 0, color: Settings.shared.topPhraseColor,
+                                     frame: NSRect(x: 364, y: 122, width: 40, height: 24))
+        cv.addSubview(topColorWell)
+        cv.addSubview(makeEmojiButton(tag: 0, frame: NSRect(x: 408, y: 123, width: 52, height: 22)))
 
         addLabel("Bottom phrase:", to: cv, frame: NSRect(x: 28, y: 90, width: 130, height: 24))
-        bottomPhraseField = makeTextField(frame: NSRect(x: 164, y: 90, width: 244, height: 24),
+        bottomPhraseField = makeTextField(frame: NSRect(x: 164, y: 90, width: 196, height: 24),
                                           placeholder: "Optional")
         bottomPhraseField.stringValue = Settings.shared.bottomPhrase
         cv.addSubview(bottomPhraseField)
-        cv.addSubview(makeEmojiButton(tag: 1, frame: NSRect(x: 412, y: 91, width: 52, height: 22)))
+        bottomColorWell = makeColorWell(tag: 1, color: Settings.shared.bottomPhraseColor,
+                                        frame: NSRect(x: 364, y: 90, width: 40, height: 24))
+        cv.addSubview(bottomColorWell)
+        cv.addSubview(makeEmojiButton(tag: 1, frame: NSRect(x: 408, y: 91, width: 52, height: 22)))
+
+        // Live preview updates as the user types
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(phraseFieldChanged),
+            name: NSControl.textDidChangeNotification, object: topPhraseField)
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(phraseFieldChanged),
+            name: NSControl.textDidChangeNotification, object: bottomPhraseField)
 
         // ── Bottom bar ───────────────────────────────────────────────────────────
         let sep = NSBox()
@@ -140,13 +209,44 @@ class SettingsWindowController: NSWindowController, NSWindowDelegate {
     }
 
     func windowWillClose(_ notification: Notification) {
+        topColorWell.deactivate()
+        bottomColorWell.deactivate()
         commitPhrases()
+        if let pw = previewWindow {
+            window?.removeChildWindow(pw)
+            pw.close()
+            previewWindow = nil
+        }
     }
 
     private func commitPhrases() {
         Settings.shared.topPhrase    = topPhraseField.stringValue
         Settings.shared.bottomPhrase = bottomPhraseField.stringValue
         (NSApp.delegate as? AppDelegate)?.updateOverlayPhrases()
+    }
+
+    @objc private func opacitySliderChanged(_ sender: NSSlider) {
+        let value = sender.doubleValue
+        Settings.shared.squareOpacity = value
+        opacityValueLabel.stringValue = "\(Int((value * 100).rounded()))%"
+        (NSApp.delegate as? AppDelegate)?.updateOverlayOpacity()
+        previewWindow?.updateOpacity(value)
+    }
+
+    @objc private func phraseFieldChanged(_ notification: Notification) {
+        previewWindow?.updatePhrases(top: topPhraseField.stringValue,
+                                     bottom: bottomPhraseField.stringValue)
+    }
+
+    @objc private func colorWellChanged(_ sender: NSColorWell) {
+        if sender.tag == 0 {
+            Settings.shared.topPhraseColor = sender.color
+        } else {
+            Settings.shared.bottomPhraseColor = sender.color
+        }
+        (NSApp.delegate as? AppDelegate)?.updateOverlayTextColors()
+        previewWindow?.updateTextColors(top: Settings.shared.topPhraseColor,
+                                        bottom: Settings.shared.bottomPhraseColor)
     }
 
     @objc private func openEmojiPicker(_ sender: NSButton) {
@@ -203,11 +303,67 @@ class SettingsWindowController: NSWindowController, NSWindowDelegate {
         return label
     }
 
+    private func makeColorWell(tag: Int, color: NSColor, frame: NSRect) -> NSColorWell {
+        let well = NSColorWell(frame: frame)
+        if #available(macOS 13.0, *) { well.colorWellStyle = .minimal }
+        well.color  = color
+        well.tag    = tag
+        well.target = self
+        well.action = #selector(colorWellChanged(_:))
+        well.toolTip = tag == 0 ? "Top phrase color" : "Bottom phrase color"
+        return well
+    }
+
     private func makeTextField(frame: NSRect, placeholder: String) -> NSTextField {
         let field = NSTextField(frame: frame)
         field.placeholderString = placeholder
         field.bezelStyle = .roundedBezel
         field.isBordered = true
         return field
+    }
+}
+
+// MARK: - Preview Window
+
+private class PreviewWindow: NSWindow {
+    private let overlayView: OverlayView
+    private static let size: CGFloat = 260
+
+    init() {
+        let sz = Self.size
+        overlayView = OverlayView(frame: NSRect(x: 0, y: 0, width: sz, height: sz))
+        super.init(
+            contentRect: NSRect(x: 0, y: 0, width: sz, height: sz),
+            styleMask: .borderless,
+            backing: .buffered,
+            defer: false
+        )
+        backgroundColor     = .clear
+        isOpaque            = false
+        hasShadow           = false
+        ignoresMouseEvents  = true
+        isReleasedWhenClosed = false
+
+        contentView = overlayView
+
+        // Show the square centred and seed it with current settings
+        overlayView.showSquare(at: CGPoint(x: sz / 2, y: sz / 2))
+        overlayView.updatePhrases(top: Settings.shared.topPhrase,
+                                  bottom: Settings.shared.bottomPhrase)
+        overlayView.updateOpacity(Settings.shared.squareOpacity)
+        overlayView.updateTextColors(top: Settings.shared.topPhraseColor,
+                                     bottom: Settings.shared.bottomPhraseColor)
+    }
+
+    func updatePhrases(top: String, bottom: String) {
+        overlayView.updatePhrases(top: top, bottom: bottom)
+    }
+
+    func updateOpacity(_ opacity: Double) {
+        overlayView.updateOpacity(opacity)
+    }
+
+    func updateTextColors(top: NSColor, bottom: NSColor) {
+        overlayView.updateTextColors(top: top, bottom: bottom)
     }
 }
