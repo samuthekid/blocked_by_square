@@ -119,7 +119,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             eventTap = nil
         }
 
-        lockScreen()
+        if Settings.shared.securityLevel == "max" {
+            lockScreen()
+        }
 
         for w in overlayWindows { w.close() }
         overlayWindows.removeAll()

@@ -51,7 +51,7 @@ class SettingsWindowController: NSWindowController, NSWindowDelegate {
 
     convenience init() {
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 540, height: 440),
+            contentRect: NSRect(x: 0, y: 0, width: 540, height: 500),
             styleMask: [.titled, .closable],
             backing: .buffered,
             defer: false
@@ -142,6 +142,53 @@ class SettingsWindowController: NSWindowController, NSWindowDelegate {
                 row.bottomAnchor.constraint(equalTo: card.bottomAnchor),
                 row.leadingAnchor.constraint(equalTo: card.leadingAnchor),
                 row.trailingAnchor.constraint(equalTo: card.trailingAnchor),
+            ])
+
+            mainStack.addArrangedSubview(card)
+            card.widthAnchor.constraint(equalTo: mainStack.widthAnchor).isActive = true
+        }
+
+        // ── Security level card ──
+        do {
+            let card = makeCard(frame: .zero)
+            card.translatesAutoresizingMaskIntoConstraints = false
+
+            let label = NSTextField(labelWithString: "Security level")
+            label.font = .systemFont(ofSize: 13)
+
+            let hint = NSTextField(labelWithString:
+                "Max: ESC locks the screen. Low: ESC just exits lock mode.")
+            hint.font = .systemFont(ofSize: 11)
+            hint.textColor = .tertiaryLabelColor
+
+            let leftStack = NSStackView(views: [label, hint])
+            leftStack.orientation = .vertical
+            leftStack.spacing = 2
+            leftStack.alignment = .leading
+
+            let popup = NSPopUpButton(frame: .zero, pullsDown: false)
+            popup.addItems(withTitles: ["Max", "Low"])
+            popup.selectItem(withTitle: Settings.shared.securityLevel == "low" ? "Low" : "Max")
+            popup.target = self
+            popup.action = #selector(securityLevelChanged(_:))
+            popup.setContentHuggingPriority(.required, for: .horizontal)
+            popup.translatesAutoresizingMaskIntoConstraints = false
+
+            let spacer = NSView()
+            spacer.setContentHuggingPriority(.defaultLow, for: .horizontal)
+
+            let hStack = NSStackView(views: [leftStack, spacer, popup])
+            hStack.orientation = .horizontal
+            hStack.alignment = .centerY
+            hStack.edgeInsets = NSEdgeInsets(top: 16, left: 12, bottom: 12, right: 12)
+            hStack.translatesAutoresizingMaskIntoConstraints = false
+
+            card.addSubview(hStack)
+            NSLayoutConstraint.activate([
+                hStack.topAnchor.constraint(equalTo: card.topAnchor),
+                hStack.bottomAnchor.constraint(equalTo: card.bottomAnchor),
+                hStack.leadingAnchor.constraint(equalTo: card.leadingAnchor),
+                hStack.trailingAnchor.constraint(equalTo: card.trailingAnchor),
             ])
 
             mainStack.addArrangedSubview(card)
@@ -421,12 +468,6 @@ class SettingsWindowController: NSWindowController, NSWindowDelegate {
         sep.translatesAutoresizingMaskIntoConstraints = false
         cv.addSubview(sep)
 
-        let hintLabel = NSTextField(labelWithString: "ESC always locks the screen when lock mode is active.")
-        hintLabel.font = .systemFont(ofSize: 11)
-        hintLabel.textColor = .tertiaryLabelColor
-        hintLabel.translatesAutoresizingMaskIntoConstraints = false
-        cv.addSubview(hintLabel)
-
         let saveBtn = NSButton(title: "Save", target: self, action: #selector(save))
         saveBtn.bezelStyle = .rounded
         saveBtn.keyEquivalent = "\r"
@@ -441,9 +482,6 @@ class SettingsWindowController: NSWindowController, NSWindowDelegate {
             sep.topAnchor.constraint(equalTo: mainStack.bottomAnchor, constant: 16),
             sep.leadingAnchor.constraint(equalTo: cv.leadingAnchor),
             sep.trailingAnchor.constraint(equalTo: cv.trailingAnchor),
-
-            hintLabel.leadingAnchor.constraint(equalTo: cv.leadingAnchor, constant: 20),
-            hintLabel.centerYAnchor.constraint(equalTo: saveBtn.centerYAnchor),
 
             saveBtn.trailingAnchor.constraint(equalTo: cv.trailingAnchor, constant: -16),
             saveBtn.bottomAnchor.constraint(equalTo: cv.bottomAnchor, constant: -18),
@@ -463,6 +501,11 @@ class SettingsWindowController: NSWindowController, NSWindowDelegate {
         NotificationCenter.default.addObserver(
             self, selector: #selector(paddingFieldChanged),
             name: NSControl.textDidChangeNotification, object: bottomPaddingField)
+    }
+
+    @objc private func securityLevelChanged(_ sender: NSPopUpButton) {
+        let val = sender.titleOfSelectedItem == "Low" ? "low" : "max"
+        Settings.shared.securityLevel = val
     }
 
     @objc private func save() {

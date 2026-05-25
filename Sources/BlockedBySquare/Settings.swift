@@ -104,4 +104,10 @@ final class Settings {
         get { defaults.object(forKey: "bottomPadding") as? Double ?? 20 }
         set { defaults.set(newValue, forKey: "bottomPadding") }
     }
+
+    // "max" = lock screen on ESC, "low" = just exit lock mode
+    var securityLevel: String {
+        get { defaults.string(forKey: "securityLevel") ?? "max" }
+        set { defaults.set(newValue, forKey: "securityLevel") }
+    }
 }
