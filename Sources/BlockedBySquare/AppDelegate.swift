@@ -18,6 +18,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         if !checkAccessibility() { return }
         setupStatusBar()
         setupGlobalShortcut()
+        if Bundle.main.infoDictionary?["BlockedBySquareOpenSettingsOnLaunch"] as? Bool == true {
+            DispatchQueue.main.async { self.openSettings() }
+        }
     }
 
     // MARK: - Menu Bar
