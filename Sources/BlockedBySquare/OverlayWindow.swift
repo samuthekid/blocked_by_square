@@ -34,4 +34,8 @@ class OverlayWindow: NSWindow {
         content.updateTextColors(topLight: topLight, topDark: topDark,
                                  bottomLight: bottomLight, bottomDark: bottomDark)
     }
+
+    func updatePadding(top: CGFloat, bottom: CGFloat) {
+        content.updatePadding(top: top, bottom: bottom)
+    }
 }

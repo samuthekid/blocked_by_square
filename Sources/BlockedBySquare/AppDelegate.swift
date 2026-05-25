@@ -100,6 +100,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
         updateOverlayPhrases()
         updateOverlayTextColors()
+        updateOverlayPadding()
 
         startMouseTracking()
         startEventTap()
@@ -141,6 +142,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         for w in overlayWindows {
             w.updateTextColors(topLight: s.topPhraseColorLight, topDark: s.topPhraseColorDark,
                                bottomLight: s.bottomPhraseColorLight, bottomDark: s.bottomPhraseColorDark)
+        }
+    }
+
+    func updateOverlayPadding() {
+        let s = Settings.shared
+        for w in overlayWindows {
+            w.updatePadding(top: CGFloat(s.topPadding), bottom: CGFloat(s.bottomPadding))
         }
     }
 

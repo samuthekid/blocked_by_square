@@ -31,11 +31,15 @@ class SettingsWindowController: NSWindowController, NSWindowDelegate {
     private var topColorWellDark: NSColorWell!
     private var bottomColorWellLight: NSColorWell!
     private var bottomColorWellDark: NSColorWell!
+    private var topPaddingField: NSTextField!
+    private var topPaddingStepper: NSStepper!
+    private var bottomPaddingField: NSTextField!
+    private var bottomPaddingStepper: NSStepper!
     private var previewWindow: PreviewWindow?
 
     convenience init() {
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 540, height: 370),
+            contentRect: NSRect(x: 0, y: 0, width: 540, height: 440),
             styleMask: [.titled, .closable],
             backing: .buffered,
             defer: false
@@ -301,17 +305,99 @@ class SettingsWindowController: NSWindowController, NSWindowDelegate {
             bottomRow.spacing = 8
             bottomRow.alignment = .centerY
 
+            // ── Top padding row ──
+            let topPaddingLabel = NSTextField(labelWithString: "Top padding (px):")
+            topPaddingLabel.alignment = .right
+            topPaddingLabel.translatesAutoresizingMaskIntoConstraints = false
+            topPaddingLabel.widthAnchor.constraint(equalToConstant: 130).isActive = true
+
+            topPaddingField = NSTextField()
+            let padFmt = NumberFormatter()
+            padFmt.minimum = 0
+            padFmt.maximum = 100
+            topPaddingField.formatter = padFmt
+            topPaddingField.bezelStyle = .roundedBezel
+            topPaddingField.isBordered = true
+            topPaddingField.stringValue = "\(Int(Settings.shared.topPadding))"
+            topPaddingField.translatesAutoresizingMaskIntoConstraints = false
+            topPaddingField.widthAnchor.constraint(equalToConstant: 60).isActive = true
+
+            topPaddingStepper = NSStepper()
+            topPaddingStepper.minValue = 0
+            topPaddingStepper.maxValue = 100
+            topPaddingStepper.integerValue = Int(Settings.shared.topPadding)
+            topPaddingStepper.tag = 0
+            topPaddingStepper.target = self
+            topPaddingStepper.action = #selector(paddingStepperChanged(_:))
+            topPaddingStepper.translatesAutoresizingMaskIntoConstraints = false
+
+            let topPadReset = NSButton(title: "Reset", target: self, action: #selector(resetTopPadding))
+            topPadReset.bezelStyle = .rounded
+            topPadReset.font = .systemFont(ofSize: 11)
+            topPadReset.translatesAutoresizingMaskIntoConstraints = false
+
+            let topPadSpacer = NSView()
+            topPadSpacer.setContentHuggingPriority(.defaultLow, for: .horizontal)
+
+            let topPaddingRow = NSStackView(views: [topPaddingLabel, topPaddingField, topPaddingStepper, topPadSpacer, topPadReset])
+            topPaddingRow.spacing = 8
+            topPaddingRow.alignment = .centerY
+            topPaddingRow.translatesAutoresizingMaskIntoConstraints = false
+
+            // ── Bottom padding row ──
+            let bottomPaddingLabel = NSTextField(labelWithString: "Bottom padding (px):")
+            bottomPaddingLabel.alignment = .right
+            bottomPaddingLabel.translatesAutoresizingMaskIntoConstraints = false
+            bottomPaddingLabel.widthAnchor.constraint(equalToConstant: 130).isActive = true
+
+            bottomPaddingField = NSTextField()
+            let btmFmt = NumberFormatter()
+            btmFmt.minimum = 0
+            btmFmt.maximum = 100
+            bottomPaddingField.formatter = btmFmt
+            bottomPaddingField.bezelStyle = .roundedBezel
+            bottomPaddingField.isBordered = true
+            bottomPaddingField.stringValue = "\(Int(Settings.shared.bottomPadding))"
+            bottomPaddingField.translatesAutoresizingMaskIntoConstraints = false
+            bottomPaddingField.widthAnchor.constraint(equalToConstant: 60).isActive = true
+
+            bottomPaddingStepper = NSStepper()
+            bottomPaddingStepper.minValue = 0
+            bottomPaddingStepper.maxValue = 100
+            bottomPaddingStepper.integerValue = Int(Settings.shared.bottomPadding)
+            bottomPaddingStepper.tag = 1
+            bottomPaddingStepper.target = self
+            bottomPaddingStepper.action = #selector(paddingStepperChanged(_:))
+            bottomPaddingStepper.translatesAutoresizingMaskIntoConstraints = false
+
+            let bottomPadReset = NSButton(title: "Reset", target: self, action: #selector(resetBottomPadding))
+            bottomPadReset.bezelStyle = .rounded
+            bottomPadReset.font = .systemFont(ofSize: 11)
+            bottomPadReset.translatesAutoresizingMaskIntoConstraints = false
+
+            let bottomPadSpacer = NSView()
+            bottomPadSpacer.setContentHuggingPriority(.defaultLow, for: .horizontal)
+
+            let bottomPaddingRow = NSStackView(views: [bottomPaddingLabel, bottomPaddingField, bottomPaddingStepper, bottomPadSpacer, bottomPadReset])
+            bottomPaddingRow.spacing = 8
+            bottomPaddingRow.alignment = .centerY
+            bottomPaddingRow.translatesAutoresizingMaskIntoConstraints = false
+
             // Assemble text card
             let inset: CGFloat = 12
             headerRow.translatesAutoresizingMaskIntoConstraints = false
             hint.translatesAutoresizingMaskIntoConstraints = false
             topRow.translatesAutoresizingMaskIntoConstraints = false
+            topPaddingRow.translatesAutoresizingMaskIntoConstraints = false
             bottomRow.translatesAutoresizingMaskIntoConstraints = false
+            bottomPaddingRow.translatesAutoresizingMaskIntoConstraints = false
 
             card.addSubview(headerRow)
             card.addSubview(hint)
             card.addSubview(topRow)
+            card.addSubview(topPaddingRow)
             card.addSubview(bottomRow)
+            card.addSubview(bottomPaddingRow)
             NSLayoutConstraint.activate([
                 headerRow.topAnchor.constraint(equalTo: card.topAnchor, constant: 16),
                 headerRow.leadingAnchor.constraint(equalTo: card.leadingAnchor, constant: inset),
@@ -325,10 +411,19 @@ class SettingsWindowController: NSWindowController, NSWindowDelegate {
                 topRow.leadingAnchor.constraint(equalTo: card.leadingAnchor, constant: inset),
                 topRow.trailingAnchor.constraint(equalTo: card.trailingAnchor, constant: -inset),
 
-                bottomRow.topAnchor.constraint(equalTo: topRow.bottomAnchor, constant: 8),
+                topPaddingRow.topAnchor.constraint(equalTo: topRow.bottomAnchor, constant: 8),
+                topPaddingRow.leadingAnchor.constraint(equalTo: card.leadingAnchor, constant: inset),
+                topPaddingRow.trailingAnchor.constraint(equalTo: card.trailingAnchor, constant: -inset),
+
+                bottomRow.topAnchor.constraint(equalTo: topPaddingRow.bottomAnchor, constant: 8),
                 bottomRow.leadingAnchor.constraint(equalTo: card.leadingAnchor, constant: inset),
                 bottomRow.trailingAnchor.constraint(equalTo: card.trailingAnchor, constant: -inset),
-                card.bottomAnchor.constraint(equalTo: bottomRow.bottomAnchor, constant: 12),
+
+                bottomPaddingRow.topAnchor.constraint(equalTo: bottomRow.bottomAnchor, constant: 8),
+                bottomPaddingRow.leadingAnchor.constraint(equalTo: card.leadingAnchor, constant: inset),
+                bottomPaddingRow.trailingAnchor.constraint(equalTo: card.trailingAnchor, constant: -inset),
+
+                card.bottomAnchor.constraint(equalTo: bottomPaddingRow.bottomAnchor, constant: 12),
             ])
 
             mainStack.addArrangedSubview(card)
@@ -376,10 +471,18 @@ class SettingsWindowController: NSWindowController, NSWindowDelegate {
         NotificationCenter.default.addObserver(
             self, selector: #selector(phraseFieldChanged),
             name: NSControl.textDidChangeNotification, object: bottomPhraseField)
+
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(paddingFieldChanged),
+            name: NSControl.textDidChangeNotification, object: topPaddingField)
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(paddingFieldChanged),
+            name: NSControl.textDidChangeNotification, object: bottomPaddingField)
     }
 
     @objc private func save() {
         commitPhrases()
+        commitPadding()
         window?.close()
     }
 
@@ -389,6 +492,7 @@ class SettingsWindowController: NSWindowController, NSWindowDelegate {
         bottomColorWellLight.deactivate()
         bottomColorWellDark.deactivate()
         commitPhrases()
+        commitPadding()
         if let pw = previewWindow {
             window?.removeChildWindow(pw)
             pw.close()
@@ -426,6 +530,54 @@ class SettingsWindowController: NSWindowController, NSWindowDelegate {
         let field = sender.tag == 0 ? topPhraseField! : bottomPhraseField!
         window?.makeFirstResponder(field)
         NSApp.orderFrontCharacterPalette(sender)
+    }
+
+    // MARK: - Padding
+
+    @objc private func paddingStepperChanged(_ sender: NSStepper) {
+        let val = sender.integerValue
+        if sender.tag == 0 {
+            Settings.shared.topPadding = Double(val)
+            topPaddingField.stringValue = "\(val)"
+        } else {
+            Settings.shared.bottomPadding = Double(val)
+            bottomPaddingField.stringValue = "\(val)"
+        }
+        commitPadding()
+    }
+
+    @objc private func paddingFieldChanged(_ notification: Notification) {
+        guard let field = notification.object as? NSTextField else { return }
+        let val = field.integerValue
+        if field === topPaddingField {
+            Settings.shared.topPadding = Double(val)
+            topPaddingStepper.integerValue = val
+        } else {
+            Settings.shared.bottomPadding = Double(val)
+            bottomPaddingStepper.integerValue = val
+        }
+        commitPadding()
+    }
+
+    @objc private func resetTopPadding() {
+        Settings.shared.topPadding = 25
+        topPaddingField.stringValue = "25"
+        topPaddingStepper.integerValue = 25
+        commitPadding()
+    }
+
+    @objc private func resetBottomPadding() {
+        Settings.shared.bottomPadding = 20
+        bottomPaddingField.stringValue = "20"
+        bottomPaddingStepper.integerValue = 20
+        commitPadding()
+    }
+
+    private func commitPadding() {
+        Settings.shared.topPadding = Double(topPaddingField.integerValue)
+        Settings.shared.bottomPadding = Double(bottomPaddingField.integerValue)
+        (NSApp.delegate as? AppDelegate)?.updateOverlayPadding()
+        previewWindow?.updatePadding(top: CGFloat(Settings.shared.topPadding), bottom: CGFloat(Settings.shared.bottomPadding))
     }
 
     // MARK: - Helpers
@@ -498,5 +650,9 @@ private class PreviewWindow: NSWindow {
     func updateTextColors(topLight: NSColor, topDark: NSColor, bottomLight: NSColor, bottomDark: NSColor) {
         overlayView.updateTextColors(topLight: topLight, topDark: topDark,
                                      bottomLight: bottomLight, bottomDark: bottomDark)
+    }
+
+    func updatePadding(top: CGFloat, bottom: CGFloat) {
+        overlayView.updatePadding(top: top, bottom: bottom)
     }
 }

@@ -94,4 +94,14 @@ final class Settings {
             defaults.set(data, forKey: "bottomPhraseColorDark")
         }
     }
+
+    var topPadding: Double {
+        get { defaults.object(forKey: "topPadding") as? Double ?? 25 }
+        set { defaults.set(newValue, forKey: "topPadding") }
+    }
+
+    var bottomPadding: Double {
+        get { defaults.object(forKey: "bottomPadding") as? Double ?? 20 }
+        set { defaults.set(newValue, forKey: "bottomPadding") }
+    }
 }

@@ -75,9 +75,9 @@ class OverlayView: NSView {
             textView.layer?.addSublayer(layer)
         }
 
-        topTextLayer.frame    = CGRect(x: 12, y: 120, width: 176, height: 55)
-        bottomTextLayer.frame = CGRect(x: 12, y: 20, width: 176, height: 22)
         bottomTextLayer.isWrapped = false
+        let s = Settings.shared
+        updatePadding(top: CGFloat(s.topPadding), bottom: CGFloat(s.bottomPadding))
     }
 
     required init?(coder: NSCoder) { fatalError() }
@@ -121,6 +121,14 @@ class OverlayView: NSView {
         let isDark = NSApp.effectiveAppearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
         topTextLayer.foregroundColor    = (isDark ? topColorDark    : topColorLight).cgColor
         bottomTextLayer.foregroundColor = (isDark ? bottomColorDark : bottomColorLight).cgColor
+    }
+
+    func updatePadding(top: CGFloat, bottom: CGFloat) {
+        let topHeight: CGFloat = 55
+        let bottomHeight: CGFloat = 22
+        let topMaxY = squareSize - top
+        topTextLayer.frame = CGRect(x: 12, y: topMaxY - topHeight, width: squareSize - 24, height: topHeight)
+        bottomTextLayer.frame = CGRect(x: 12, y: bottom, width: squareSize - 24, height: bottomHeight)
     }
 
 }
