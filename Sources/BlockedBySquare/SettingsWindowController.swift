@@ -23,10 +23,22 @@ private struct LaunchToggle: View {
     }
 }
 
+class PhraseField: NSTextField {
+    override func performKeyEquivalent(with event: NSEvent) -> Bool {
+        if event.modifierFlags.contains(.command),
+           event.modifierFlags.contains(.control),
+           event.charactersIgnoringModifiers == " " {
+            NSApp.orderFrontCharacterPalette(self)
+            return true
+        }
+        return super.performKeyEquivalent(with: event)
+    }
+}
+
 class SettingsWindowController: NSWindowController, NSWindowDelegate {
     private var shortcutField: ShortcutField!
-    private var topPhraseField: NSTextField!
-    private var bottomPhraseField: NSTextField!
+    private var topPhraseField: PhraseField!
+    private var bottomPhraseField: PhraseField!
     private var topColorWellLight: NSColorWell!
     private var topColorWellDark: NSColorWell!
     private var bottomColorWellLight: NSColorWell!
@@ -202,7 +214,7 @@ class SettingsWindowController: NSWindowController, NSWindowDelegate {
             topLabel.translatesAutoresizingMaskIntoConstraints = false
             topLabel.widthAnchor.constraint(equalToConstant: 130).isActive = true
 
-            topPhraseField = NSTextField()
+            topPhraseField = PhraseField()
             topPhraseField.placeholderString = "Optional"
             topPhraseField.bezelStyle = .roundedBezel
             topPhraseField.isBordered = true
@@ -233,21 +245,7 @@ class SettingsWindowController: NSWindowController, NSWindowDelegate {
 
             let topDarkStack = makeColorWellStack(well: topColorWellDark, label: "Dark")
 
-            let topEmoji = NSButton()
-            let cfg = NSImage.SymbolConfiguration(pointSize: 14, weight: .regular)
-            topEmoji.image = NSImage(systemSymbolName: "face.smiling",
-                                     accessibilityDescription: "Open emoji picker")?
-                .withSymbolConfiguration(cfg)
-            topEmoji.imagePosition = .imageOnly
-            topEmoji.bezelStyle = .rounded
-            topEmoji.tag = 0
-            topEmoji.action = #selector(openEmojiPicker(_:))
-            topEmoji.target = self
-            topEmoji.toolTip = "Open emoji & symbol picker"
-            topEmoji.translatesAutoresizingMaskIntoConstraints = false
-            topEmoji.widthAnchor.constraint(equalToConstant: 52).isActive = true
-
-            let topRow = NSStackView(views: [topLabel, topPhraseField, topLightStack, topDarkStack, topEmoji])
+            let topRow = NSStackView(views: [topLabel, topPhraseField, topLightStack, topDarkStack])
             topRow.spacing = 8
             topRow.alignment = .centerY
 
@@ -257,7 +255,7 @@ class SettingsWindowController: NSWindowController, NSWindowDelegate {
             bottomLabel.translatesAutoresizingMaskIntoConstraints = false
             bottomLabel.widthAnchor.constraint(equalToConstant: 130).isActive = true
 
-            bottomPhraseField = NSTextField()
+            bottomPhraseField = PhraseField()
             bottomPhraseField.placeholderString = "Optional"
             bottomPhraseField.bezelStyle = .roundedBezel
             bottomPhraseField.isBordered = true
@@ -288,20 +286,7 @@ class SettingsWindowController: NSWindowController, NSWindowDelegate {
 
             let bottomDarkStack = makeColorWellStack(well: bottomColorWellDark, label: "Dark")
 
-            let bottomEmoji = NSButton()
-            bottomEmoji.image = NSImage(systemSymbolName: "face.smiling",
-                                        accessibilityDescription: "Open emoji picker")?
-                .withSymbolConfiguration(cfg)
-            bottomEmoji.imagePosition = .imageOnly
-            bottomEmoji.bezelStyle = .rounded
-            bottomEmoji.tag = 1
-            bottomEmoji.action = #selector(openEmojiPicker(_:))
-            bottomEmoji.target = self
-            bottomEmoji.toolTip = "Open emoji & symbol picker"
-            bottomEmoji.translatesAutoresizingMaskIntoConstraints = false
-            bottomEmoji.widthAnchor.constraint(equalToConstant: 52).isActive = true
-
-            let bottomRow = NSStackView(views: [bottomLabel, bottomPhraseField, bottomLightStack, bottomDarkStack, bottomEmoji])
+            let bottomRow = NSStackView(views: [bottomLabel, bottomPhraseField, bottomLightStack, bottomDarkStack])
             bottomRow.spacing = 8
             bottomRow.alignment = .centerY
 
@@ -524,12 +509,6 @@ class SettingsWindowController: NSWindowController, NSWindowDelegate {
         previewWindow?.updateTextColors(
             topLight: s.topPhraseColorLight, topDark: s.topPhraseColorDark,
             bottomLight: s.bottomPhraseColorLight, bottomDark: s.bottomPhraseColorDark)
-    }
-
-    @objc private func openEmojiPicker(_ sender: NSButton) {
-        let field = sender.tag == 0 ? topPhraseField! : bottomPhraseField!
-        window?.makeFirstResponder(field)
-        NSApp.orderFrontCharacterPalette(sender)
     }
 
     // MARK: - Padding
