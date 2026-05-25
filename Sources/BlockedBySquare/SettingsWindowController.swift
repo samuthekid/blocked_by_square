@@ -27,13 +27,15 @@ class SettingsWindowController: NSWindowController, NSWindowDelegate {
     private var shortcutField: ShortcutField!
     private var topPhraseField: NSTextField!
     private var bottomPhraseField: NSTextField!
-    private var topColorWell: NSColorWell!
-    private var bottomColorWell: NSColorWell!
+    private var topColorWellLight: NSColorWell!
+    private var topColorWellDark: NSColorWell!
+    private var bottomColorWellLight: NSColorWell!
+    private var bottomColorWellDark: NSColorWell!
     private var previewWindow: PreviewWindow?
 
     convenience init() {
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 500, height: 340),
+            contentRect: NSRect(x: 0, y: 0, width: 540, height: 370),
             styleMask: [.titled, .closable],
             backing: .buffered,
             defer: false
@@ -203,15 +205,29 @@ class SettingsWindowController: NSWindowController, NSWindowDelegate {
             topPhraseField.stringValue = Settings.shared.topPhrase
             topPhraseField.translatesAutoresizingMaskIntoConstraints = false
 
-            topColorWell = NSColorWell()
-            if #available(macOS 13.0, *) { topColorWell.colorWellStyle = .minimal }
-            topColorWell.color = Settings.shared.topPhraseColor
-            topColorWell.tag = 0
-            topColorWell.target = self
-            topColorWell.action = #selector(colorWellChanged(_:))
-            topColorWell.toolTip = "Top phrase color"
-            topColorWell.translatesAutoresizingMaskIntoConstraints = false
-            topColorWell.widthAnchor.constraint(equalToConstant: 40).isActive = true
+            topColorWellLight = NSColorWell()
+            if #available(macOS 13.0, *) { topColorWellLight.colorWellStyle = .minimal }
+            topColorWellLight.color = Settings.shared.topPhraseColorLight
+            topColorWellLight.tag = 0
+            topColorWellLight.target = self
+            topColorWellLight.action = #selector(colorWellChanged(_:))
+            topColorWellLight.toolTip = "Light mode color"
+            topColorWellLight.translatesAutoresizingMaskIntoConstraints = false
+            topColorWellLight.widthAnchor.constraint(equalToConstant: 32).isActive = true
+
+            let topLightStack = makeColorWellStack(well: topColorWellLight, label: "Light")
+
+            topColorWellDark = NSColorWell()
+            if #available(macOS 13.0, *) { topColorWellDark.colorWellStyle = .minimal }
+            topColorWellDark.color = Settings.shared.topPhraseColorDark
+            topColorWellDark.tag = 2
+            topColorWellDark.target = self
+            topColorWellDark.action = #selector(colorWellChanged(_:))
+            topColorWellDark.toolTip = "Dark mode color"
+            topColorWellDark.translatesAutoresizingMaskIntoConstraints = false
+            topColorWellDark.widthAnchor.constraint(equalToConstant: 32).isActive = true
+
+            let topDarkStack = makeColorWellStack(well: topColorWellDark, label: "Dark")
 
             let topEmoji = NSButton()
             let cfg = NSImage.SymbolConfiguration(pointSize: 14, weight: .regular)
@@ -227,7 +243,7 @@ class SettingsWindowController: NSWindowController, NSWindowDelegate {
             topEmoji.translatesAutoresizingMaskIntoConstraints = false
             topEmoji.widthAnchor.constraint(equalToConstant: 52).isActive = true
 
-            let topRow = NSStackView(views: [topLabel, topPhraseField, topColorWell, topEmoji])
+            let topRow = NSStackView(views: [topLabel, topPhraseField, topLightStack, topDarkStack, topEmoji])
             topRow.spacing = 8
             topRow.alignment = .centerY
 
@@ -244,15 +260,29 @@ class SettingsWindowController: NSWindowController, NSWindowDelegate {
             bottomPhraseField.stringValue = Settings.shared.bottomPhrase
             bottomPhraseField.translatesAutoresizingMaskIntoConstraints = false
 
-            bottomColorWell = NSColorWell()
-            if #available(macOS 13.0, *) { bottomColorWell.colorWellStyle = .minimal }
-            bottomColorWell.color = Settings.shared.bottomPhraseColor
-            bottomColorWell.tag = 1
-            bottomColorWell.target = self
-            bottomColorWell.action = #selector(colorWellChanged(_:))
-            bottomColorWell.toolTip = "Bottom phrase color"
-            bottomColorWell.translatesAutoresizingMaskIntoConstraints = false
-            bottomColorWell.widthAnchor.constraint(equalToConstant: 40).isActive = true
+            bottomColorWellLight = NSColorWell()
+            if #available(macOS 13.0, *) { bottomColorWellLight.colorWellStyle = .minimal }
+            bottomColorWellLight.color = Settings.shared.bottomPhraseColorLight
+            bottomColorWellLight.tag = 1
+            bottomColorWellLight.target = self
+            bottomColorWellLight.action = #selector(colorWellChanged(_:))
+            bottomColorWellLight.toolTip = "Light mode color"
+            bottomColorWellLight.translatesAutoresizingMaskIntoConstraints = false
+            bottomColorWellLight.widthAnchor.constraint(equalToConstant: 32).isActive = true
+
+            let bottomLightStack = makeColorWellStack(well: bottomColorWellLight, label: "Light")
+
+            bottomColorWellDark = NSColorWell()
+            if #available(macOS 13.0, *) { bottomColorWellDark.colorWellStyle = .minimal }
+            bottomColorWellDark.color = Settings.shared.bottomPhraseColorDark
+            bottomColorWellDark.tag = 3
+            bottomColorWellDark.target = self
+            bottomColorWellDark.action = #selector(colorWellChanged(_:))
+            bottomColorWellDark.toolTip = "Dark mode color"
+            bottomColorWellDark.translatesAutoresizingMaskIntoConstraints = false
+            bottomColorWellDark.widthAnchor.constraint(equalToConstant: 32).isActive = true
+
+            let bottomDarkStack = makeColorWellStack(well: bottomColorWellDark, label: "Dark")
 
             let bottomEmoji = NSButton()
             bottomEmoji.image = NSImage(systemSymbolName: "face.smiling",
@@ -267,7 +297,7 @@ class SettingsWindowController: NSWindowController, NSWindowDelegate {
             bottomEmoji.translatesAutoresizingMaskIntoConstraints = false
             bottomEmoji.widthAnchor.constraint(equalToConstant: 52).isActive = true
 
-            let bottomRow = NSStackView(views: [bottomLabel, bottomPhraseField, bottomColorWell, bottomEmoji])
+            let bottomRow = NSStackView(views: [bottomLabel, bottomPhraseField, bottomLightStack, bottomDarkStack, bottomEmoji])
             bottomRow.spacing = 8
             bottomRow.alignment = .centerY
 
@@ -354,8 +384,10 @@ class SettingsWindowController: NSWindowController, NSWindowDelegate {
     }
 
     func windowWillClose(_ notification: Notification) {
-        topColorWell.deactivate()
-        bottomColorWell.deactivate()
+        topColorWellLight.deactivate()
+        topColorWellDark.deactivate()
+        bottomColorWellLight.deactivate()
+        bottomColorWellDark.deactivate()
         commitPhrases()
         if let pw = previewWindow {
             window?.removeChildWindow(pw)
@@ -376,14 +408,18 @@ class SettingsWindowController: NSWindowController, NSWindowDelegate {
     }
 
     @objc private func colorWellChanged(_ sender: NSColorWell) {
-        if sender.tag == 0 {
-            Settings.shared.topPhraseColor = sender.color
-        } else {
-            Settings.shared.bottomPhraseColor = sender.color
+        let s = Settings.shared
+        switch sender.tag {
+        case 0:  s.topPhraseColorLight    = sender.color
+        case 1:  s.bottomPhraseColorLight = sender.color
+        case 2:  s.topPhraseColorDark     = sender.color
+        case 3:  s.bottomPhraseColorDark  = sender.color
+        default: break
         }
         (NSApp.delegate as? AppDelegate)?.updateOverlayTextColors()
-        previewWindow?.updateTextColors(top: Settings.shared.topPhraseColor,
-                                        bottom: Settings.shared.bottomPhraseColor)
+        previewWindow?.updateTextColors(
+            topLight: s.topPhraseColorLight, topDark: s.topPhraseColorDark,
+            bottomLight: s.bottomPhraseColorLight, bottomDark: s.bottomPhraseColorDark)
     }
 
     @objc private func openEmojiPicker(_ sender: NSButton) {
@@ -406,6 +442,20 @@ class SettingsWindowController: NSWindowController, NSWindowDelegate {
         box.cornerRadius = 10
         box.borderWidth = 0.5
         return box
+    }
+
+    private func makeColorWellStack(well: NSColorWell, label: String) -> NSStackView {
+        let lbl = NSTextField(labelWithString: label)
+        lbl.font = .systemFont(ofSize: 9, weight: .medium)
+        lbl.textColor = .secondaryLabelColor
+        lbl.alignment = .center
+        lbl.translatesAutoresizingMaskIntoConstraints = false
+
+        let stack = NSStackView(views: [lbl, well])
+        stack.orientation = .vertical
+        stack.spacing = 2
+        stack.alignment = .centerX
+        return stack
     }
 }
 
@@ -436,15 +486,17 @@ private class PreviewWindow: NSWindow {
         overlayView.showSquare(at: CGPoint(x: sz / 2, y: sz / 2))
         overlayView.updatePhrases(top: Settings.shared.topPhrase,
                                   bottom: Settings.shared.bottomPhrase)
-        overlayView.updateTextColors(top: Settings.shared.topPhraseColor,
-                                     bottom: Settings.shared.bottomPhraseColor)
+        let s = Settings.shared
+        overlayView.updateTextColors(topLight: s.topPhraseColorLight, topDark: s.topPhraseColorDark,
+                                     bottomLight: s.bottomPhraseColorLight, bottomDark: s.bottomPhraseColorDark)
     }
 
     func updatePhrases(top: String, bottom: String) {
         overlayView.updatePhrases(top: top, bottom: bottom)
     }
 
-    func updateTextColors(top: NSColor, bottom: NSColor) {
-        overlayView.updateTextColors(top: top, bottom: bottom)
+    func updateTextColors(topLight: NSColor, topDark: NSColor, bottomLight: NSColor, bottomDark: NSColor) {
+        overlayView.updateTextColors(topLight: topLight, topDark: topDark,
+                                     bottomLight: bottomLight, bottomDark: bottomDark)
     }
 }

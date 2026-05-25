@@ -30,5 +30,8 @@ class OverlayWindow: NSWindow {
     func showSquare(at localPos: CGPoint) { content.showSquare(at: localPos) }
     func hideSquare()                     { content.hideSquare() }
     func updatePhrases(top: String, bottom: String) { content.updatePhrases(top: top, bottom: bottom) }
-    func updateTextColors(top: NSColor, bottom: NSColor) { content.updateTextColors(top: top, bottom: bottom) }
+    func updateTextColors(topLight: NSColor, topDark: NSColor, bottomLight: NSColor, bottomDark: NSColor) {
+        content.updateTextColors(topLight: topLight, topDark: topDark,
+                                 bottomLight: bottomLight, bottomDark: bottomDark)
+    }
 }

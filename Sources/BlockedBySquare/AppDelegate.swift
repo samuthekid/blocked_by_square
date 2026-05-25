@@ -137,9 +137,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func updateOverlayTextColors() {
-        let top    = Settings.shared.topPhraseColor
-        let bottom = Settings.shared.bottomPhraseColor
-        for w in overlayWindows { w.updateTextColors(top: top, bottom: bottom) }
+        let s = Settings.shared
+        for w in overlayWindows {
+            w.updateTextColors(topLight: s.topPhraseColorLight, topDark: s.topPhraseColorDark,
+                               bottomLight: s.bottomPhraseColorLight, bottomDark: s.bottomPhraseColorDark)
+        }
     }
 
     // MARK: - Mouse Tracking

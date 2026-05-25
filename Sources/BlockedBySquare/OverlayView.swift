@@ -110,9 +110,28 @@ class OverlayView: NSView {
         bottomTextLayer.string = bottom
     }
 
-    func updateTextColors(top: NSColor, bottom: NSColor) {
-        topTextLayer.foregroundColor    = top.cgColor
-        bottomTextLayer.foregroundColor = bottom.cgColor
+    private var topColorLight    = NSColor.black
+    private var topColorDark     = NSColor.white
+    private var bottomColorLight = NSColor.black
+    private var bottomColorDark  = NSColor.white
+
+    func updateTextColors(topLight: NSColor, topDark: NSColor, bottomLight: NSColor, bottomDark: NSColor) {
+        topColorLight    = topLight
+        topColorDark     = topDark
+        bottomColorLight = bottomLight
+        bottomColorDark  = bottomDark
+        applyTextColors()
+    }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        applyTextColors()
+    }
+
+    private func applyTextColors() {
+        let isDark = NSApp.effectiveAppearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
+        topTextLayer.foregroundColor    = (isDark ? topColorDark    : topColorLight).cgColor
+        bottomTextLayer.foregroundColor = (isDark ? bottomColorDark : bottomColorLight).cgColor
     }
 
 }

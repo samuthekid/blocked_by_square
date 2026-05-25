@@ -31,29 +31,67 @@ final class Settings {
         set { defaults.set(newValue, forKey: "bottomPhrase") }
     }
 
-    var topPhraseColor: NSColor {
+    var topPhraseColorLight: NSColor {
         get {
-            guard let data = defaults.data(forKey: "topPhraseColor"),
-                  let color = try? NSKeyedUnarchiver.unarchivedObject(ofClass: NSColor.self, from: data)
-            else { return .white }
-            return color
+            if let data = defaults.data(forKey: "topPhraseColorLight"),
+               let color = try? NSKeyedUnarchiver.unarchivedObject(ofClass: NSColor.self, from: data) {
+                return color
+            }
+            // Fallback to old key
+            if let data = defaults.data(forKey: "topPhraseColor"),
+               let color = try? NSKeyedUnarchiver.unarchivedObject(ofClass: NSColor.self, from: data) {
+                return color
+            }
+            return .black
         }
         set {
             let data = try? NSKeyedArchiver.archivedData(withRootObject: newValue, requiringSecureCoding: false)
-            defaults.set(data, forKey: "topPhraseColor")
+            defaults.set(data, forKey: "topPhraseColorLight")
         }
     }
 
-    var bottomPhraseColor: NSColor {
+    var topPhraseColorDark: NSColor {
         get {
-            guard let data = defaults.data(forKey: "bottomPhraseColor"),
+            guard let data = defaults.data(forKey: "topPhraseColorDark"),
                   let color = try? NSKeyedUnarchiver.unarchivedObject(ofClass: NSColor.self, from: data)
             else { return .white }
             return color
         }
         set {
             let data = try? NSKeyedArchiver.archivedData(withRootObject: newValue, requiringSecureCoding: false)
-            defaults.set(data, forKey: "bottomPhraseColor")
+            defaults.set(data, forKey: "topPhraseColorDark")
+        }
+    }
+
+    var bottomPhraseColorLight: NSColor {
+        get {
+            if let data = defaults.data(forKey: "bottomPhraseColorLight"),
+               let color = try? NSKeyedUnarchiver.unarchivedObject(ofClass: NSColor.self, from: data) {
+                return color
+            }
+            // Fallback to old key
+            if let data = defaults.data(forKey: "bottomPhraseColor"),
+               let color = try? NSKeyedUnarchiver.unarchivedObject(ofClass: NSColor.self, from: data) {
+                return color
+            }
+            return .black
+        }
+        set {
+            let data = try? NSKeyedArchiver.archivedData(withRootObject: newValue, requiringSecureCoding: false)
+            defaults.set(data, forKey: "bottomPhraseColorLight")
+        }
+    }
+
+    var bottomPhraseColorDark: NSColor {
+        get {
+            guard let data = defaults.data(forKey: "bottomPhraseColorDark"),
+                  let color = try? NSKeyedUnarchiver.unarchivedObject(ofClass: NSColor.self, from: data)
+            else { return .white }
+            return color
+        }
+        set {
+            let data = try? NSKeyedArchiver.archivedData(withRootObject: newValue, requiringSecureCoding: false)
+            defaults.set(data, forKey: "bottomPhraseColorDark")
         }
     }
 }
