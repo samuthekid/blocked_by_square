@@ -115,9 +115,6 @@ class OverlayView: NSView {
         bottomTextLayer.foregroundColor = bottom.cgColor
     }
 
-    func updateOpacity(_ opacity: Double) {
-        glassView.alphaValue = CGFloat(opacity)
-    }
 }
 
 @available(macOS 26.0, *)

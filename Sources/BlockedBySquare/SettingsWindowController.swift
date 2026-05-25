@@ -29,8 +29,6 @@ class SettingsWindowController: NSWindowController, NSWindowDelegate {
     private var bottomPhraseField: NSTextField!
     private var topColorWell: NSColorWell!
     private var bottomColorWell: NSColorWell!
-    private var opacitySlider: NSSlider!
-    private var opacityValueLabel: NSTextField!
     private var previewWindow: PreviewWindow?
 
     convenience init() {
@@ -114,28 +112,6 @@ class SettingsWindowController: NSWindowController, NSWindowDelegate {
         let toggleHost = NSHostingView(rootView: LaunchToggle())
         toggleHost.frame = NSRect(x: 418, y: 304, width: 50, height: 31)
         cv.addSubview(toggleHost)
-
-        // ── Opacity card ─────────────────────────────────────────────────────────
-        cv.addSubview(makeCard(frame: NSRect(x: 16, y: 220, width: 468, height: 60)))
-
-        let opacityLabel = NSTextField(labelWithString: "Square opacity")
-        opacityLabel.font = .systemFont(ofSize: 13)
-        opacityLabel.frame = NSRect(x: 28, y: 239, width: 140, height: 22)
-        cv.addSubview(opacityLabel)
-
-        let currentOpacity = Settings.shared.squareOpacity
-        opacitySlider = NSSlider(value: currentOpacity, minValue: 0.1, maxValue: 1.0,
-                                 target: self, action: #selector(opacitySliderChanged(_:)))
-        opacitySlider.frame = NSRect(x: 174, y: 234, width: 216, height: 24)
-        opacitySlider.isContinuous = true
-        cv.addSubview(opacitySlider)
-
-        opacityValueLabel = NSTextField(labelWithString: "\(Int(currentOpacity * 100))%")
-        opacityValueLabel.font = .monospacedSystemFont(ofSize: 12, weight: .regular)
-        opacityValueLabel.textColor = .secondaryLabelColor
-        opacityValueLabel.alignment = .right
-        opacityValueLabel.frame = NSRect(x: 394, y: 239, width: 46, height: 18)
-        cv.addSubview(opacityValueLabel)
 
         // ── Text card ────────────────────────────────────────────────────────────
         cv.addSubview(makeCard(frame: NSRect(x: 16, y: 76, width: 468, height: 130)))
@@ -223,14 +199,6 @@ class SettingsWindowController: NSWindowController, NSWindowDelegate {
         Settings.shared.topPhrase    = topPhraseField.stringValue
         Settings.shared.bottomPhrase = bottomPhraseField.stringValue
         (NSApp.delegate as? AppDelegate)?.updateOverlayPhrases()
-    }
-
-    @objc private func opacitySliderChanged(_ sender: NSSlider) {
-        let value = sender.doubleValue
-        Settings.shared.squareOpacity = value
-        opacityValueLabel.stringValue = "\(Int((value * 100).rounded()))%"
-        (NSApp.delegate as? AppDelegate)?.updateOverlayOpacity()
-        previewWindow?.updateOpacity(value)
     }
 
     @objc private func phraseFieldChanged(_ notification: Notification) {
@@ -350,17 +318,12 @@ private class PreviewWindow: NSWindow {
         overlayView.showSquare(at: CGPoint(x: sz / 2, y: sz / 2))
         overlayView.updatePhrases(top: Settings.shared.topPhrase,
                                   bottom: Settings.shared.bottomPhrase)
-        overlayView.updateOpacity(Settings.shared.squareOpacity)
         overlayView.updateTextColors(top: Settings.shared.topPhraseColor,
                                      bottom: Settings.shared.bottomPhraseColor)
     }
 
     func updatePhrases(top: String, bottom: String) {
         overlayView.updatePhrases(top: top, bottom: bottom)
-    }
-
-    func updateOpacity(_ opacity: Double) {
-        overlayView.updateOpacity(opacity)
     }
 
     func updateTextColors(top: NSColor, bottom: NSColor) {

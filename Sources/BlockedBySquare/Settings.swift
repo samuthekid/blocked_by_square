@@ -31,11 +31,6 @@ final class Settings {
         set { defaults.set(newValue, forKey: "bottomPhrase") }
     }
 
-    var squareOpacity: Double {
-        get { defaults.object(forKey: "squareOpacity") as? Double ?? 0.8 }
-        set { defaults.set(newValue, forKey: "squareOpacity") }
-    }
-
     var topPhraseColor: NSColor {
         get {
             guard let data = defaults.data(forKey: "topPhraseColor"),
