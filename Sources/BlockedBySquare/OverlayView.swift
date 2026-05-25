@@ -45,17 +45,6 @@ class OverlayView: NSView {
             vfx.layer?.shadowRadius  = 28
             vfx.layer?.shadowOpacity = 1.0
             vfx.layer?.shadowOffset  = .zero
-            let highlight = CAGradientLayer()
-            highlight.colors     = [
-                NSColor.white.withAlphaComponent(0.18).cgColor,
-                NSColor.white.withAlphaComponent(0.04).cgColor,
-                NSColor.white.withAlphaComponent(0.0).cgColor,
-            ]
-            highlight.locations  = [0.0, 0.45, 0.80]
-            highlight.startPoint = CGPoint(x: 0.0, y: 1.0)
-            highlight.endPoint   = CGPoint(x: 1.0, y: 0.0)
-            highlight.frame      = CGRect(origin: .zero, size: size)
-            vfx.layer?.addSublayer(highlight)
             glassView = vfx
         }
         container.addSubview(glassView)
