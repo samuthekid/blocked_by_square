@@ -66,7 +66,8 @@ class OverlayView: NSView {
     for layer in [topTextLayer, bottomTextLayer] {
       layer.font = textFont
       layer.fontSize = 13
-      layer.foregroundColor = NSColor.white.withAlphaComponent(CGFloat(Settings.shared.textAlpha)).cgColor
+      layer.foregroundColor =
+        NSColor.white.withAlphaComponent(CGFloat(Settings.shared.textAlpha)).cgColor
       layer.alignmentMode = .center
       layer.isWrapped = true
       layer.truncationMode = .end
@@ -122,8 +123,10 @@ class OverlayView: NSView {
   private func applyTextColors() {
     let isDark = NSApp.effectiveAppearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
     let alpha = CGFloat(Settings.shared.textAlpha)
-    topTextLayer.foregroundColor = (isDark ? topColorDark : topColorLight).withAlphaComponent(alpha).cgColor
-    bottomTextLayer.foregroundColor = (isDark ? bottomColorDark : bottomColorLight).withAlphaComponent(alpha).cgColor
+    topTextLayer.foregroundColor =
+      (isDark ? topColorDark : topColorLight).withAlphaComponent(alpha).cgColor
+    bottomTextLayer.foregroundColor =
+      (isDark ? bottomColorDark : bottomColorLight).withAlphaComponent(alpha).cgColor
   }
 
   func refreshTextColors() {
