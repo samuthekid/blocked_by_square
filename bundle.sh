@@ -6,11 +6,13 @@ APP_DIR="${APP_NAME}.app"
 BINARY_PATH=".build/release/${APP_NAME}"
 DO_RUN=false
 DO_TEST=false
+DO_RESET=false
 
 for arg in "$@"; do
   case "$arg" in
     --run)  DO_RUN=true ;;
     --settings) DO_TEST=true ;;
+    --reset) DO_RESET=true ;;
   esac
 done
 
@@ -70,9 +72,14 @@ echo ""
 echo "✅  Done! App bundle created: ${APP_DIR}"
 echo ""
 
+ARGS=""
+if $DO_RESET; then
+  ARGS="--args --reset"
+fi
+
 if $DO_RUN || $DO_TEST; then
   echo "Launching ${APP_DIR}..."
-  open "${APP_DIR}"
+  open "${APP_DIR}" ${ARGS}
 else
   echo "First run: open ${APP_DIR}"
   echo "  → It will ask for Accessibility permission — grant it, then reopen."

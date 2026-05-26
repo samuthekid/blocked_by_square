@@ -4,6 +4,12 @@ final class Settings {
   static let shared = Settings()
   private let defaults = UserDefaults.standard
 
+  static func reset() {
+    if let domain = Bundle.main.bundleIdentifier {
+      UserDefaults.standard.removePersistentDomain(forName: domain)
+    }
+  }
+
   // Key code 37 = L, default shortcut ⌘⇧L
   var shortcutKeyCode: Int {
     get { defaults.object(forKey: "shortcutKeyCode") as? Int ?? 37 }
@@ -22,12 +28,12 @@ final class Settings {
   }
 
   var topPhrase: String {
-    get { defaults.string(forKey: "topPhrase") ?? "" }
+    get { defaults.string(forKey: "topPhrase") ?? "don't touch 🚫" }
     set { defaults.set(newValue, forKey: "topPhrase") }
   }
 
   var bottomPhrase: String {
-    get { defaults.string(forKey: "bottomPhrase") ?? "" }
+    get { defaults.string(forKey: "bottomPhrase") ?? "only look 👀" }
     set { defaults.set(newValue, forKey: "bottomPhrase") }
   }
 
