@@ -112,6 +112,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
     updateOverlayPhrases()
     updateOverlayTextColors()
+    updateOverlayTextAlpha()
     updateOverlayPadding()
 
     startMouseTracking()
@@ -158,6 +159,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         topLight: s.topPhraseColorLight, topDark: s.topPhraseColorDark,
         bottomLight: s.bottomPhraseColorLight, bottomDark: s.bottomPhraseColorDark)
     }
+  }
+
+  func updateOverlayTextAlpha() {
+    for w in overlayWindows { w.updateTextAlpha() }
   }
 
   func updateOverlayPadding() {

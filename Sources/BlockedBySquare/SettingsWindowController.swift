@@ -48,11 +48,13 @@ class SettingsWindowController: NSWindowController, NSWindowDelegate {
   private var topPaddingStepper: NSStepper!
   private var bottomPaddingField: NSTextField!
   private var bottomPaddingStepper: NSStepper!
+  private var textAlphaSlider: NSSlider!
+  private var textAlphaField: NSTextField!
   private var previewWindow: PreviewWindow?
 
   convenience init() {
     let window = NSWindow(
-      contentRect: NSRect(x: 0, y: 0, width: 540, height: 500),
+      contentRect: NSRect(x: 0, y: 0, width: 540, height: 538),
       styleMask: [.titled, .closable],
       backing: .buffered,
       defer: false
@@ -420,6 +422,45 @@ class SettingsWindowController: NSWindowController, NSWindowDelegate {
       bottomPaddingRow.alignment = .centerY
       bottomPaddingRow.translatesAutoresizingMaskIntoConstraints = false
 
+      // ── Text opacity row ──
+      let textAlphaLabel = NSTextField(labelWithString: "Text opacity:")
+      textAlphaLabel.alignment = .right
+      textAlphaLabel.translatesAutoresizingMaskIntoConstraints = false
+      textAlphaLabel.widthAnchor.constraint(equalToConstant: 130).isActive = true
+
+      textAlphaField = NSTextField()
+      let alphaFmt = NumberFormatter()
+      alphaFmt.minimum = 0
+      alphaFmt.maximum = 1
+      alphaFmt.minimumFractionDigits = 2
+      alphaFmt.maximumFractionDigits = 2
+      textAlphaField.formatter = alphaFmt
+      textAlphaField.bezelStyle = .roundedBezel
+      textAlphaField.isBordered = true
+      textAlphaField.stringValue = String(format: "%.2f", Settings.shared.textAlpha)
+      textAlphaField.translatesAutoresizingMaskIntoConstraints = false
+      textAlphaField.widthAnchor.constraint(equalToConstant: 60).isActive = true
+
+      textAlphaSlider = NSSlider(
+        value: Settings.shared.textAlpha,
+        minValue: 0, maxValue: 1,
+        target: self, action: #selector(textAlphaSliderChanged(_:)))
+      textAlphaSlider.isContinuous = true
+      textAlphaSlider.translatesAutoresizingMaskIntoConstraints = false
+
+      let textAlphaReset = NSButton(
+        title: "Reset", target: self, action: #selector(resetTextAlpha))
+      textAlphaReset.bezelStyle = .rounded
+      textAlphaReset.font = .systemFont(ofSize: 11)
+      textAlphaReset.translatesAutoresizingMaskIntoConstraints = false
+
+      let textAlphaRow = NSStackView(views: [
+        textAlphaLabel, textAlphaField, textAlphaSlider, textAlphaReset,
+      ])
+      textAlphaRow.spacing = 8
+      textAlphaRow.alignment = .centerY
+      textAlphaRow.translatesAutoresizingMaskIntoConstraints = false
+
       // Assemble text card
       let inset: CGFloat = 12
       headerRow.translatesAutoresizingMaskIntoConstraints = false
@@ -435,6 +476,7 @@ class SettingsWindowController: NSWindowController, NSWindowDelegate {
       card.addSubview(topPaddingRow)
       card.addSubview(bottomRow)
       card.addSubview(bottomPaddingRow)
+      card.addSubview(textAlphaRow)
       NSLayoutConstraint.activate([
         headerRow.topAnchor.constraint(equalTo: card.topAnchor, constant: 16),
         headerRow.leadingAnchor.constraint(equalTo: card.leadingAnchor, constant: inset),
@@ -460,7 +502,11 @@ class SettingsWindowController: NSWindowController, NSWindowDelegate {
         bottomPaddingRow.leadingAnchor.constraint(equalTo: card.leadingAnchor, constant: inset),
         bottomPaddingRow.trailingAnchor.constraint(equalTo: card.trailingAnchor, constant: -inset),
 
-        card.bottomAnchor.constraint(equalTo: bottomPaddingRow.bottomAnchor, constant: 12),
+        textAlphaRow.topAnchor.constraint(equalTo: bottomPaddingRow.bottomAnchor, constant: 8),
+        textAlphaRow.leadingAnchor.constraint(equalTo: card.leadingAnchor, constant: inset),
+        textAlphaRow.trailingAnchor.constraint(equalTo: card.trailingAnchor, constant: -inset),
+
+        card.bottomAnchor.constraint(equalTo: textAlphaRow.bottomAnchor, constant: 12),
       ])
 
       mainStack.addArrangedSubview(card)
@@ -506,6 +552,10 @@ class SettingsWindowController: NSWindowController, NSWindowDelegate {
     NotificationCenter.default.addObserver(
       self, selector: #selector(paddingFieldChanged),
       name: NSControl.textDidChangeNotification, object: bottomPaddingField)
+
+    NotificationCenter.default.addObserver(
+      self, selector: #selector(textAlphaFieldChanged),
+      name: NSControl.textDidChangeNotification, object: textAlphaField)
   }
 
   @objc private func securityLevelChanged(_ sender: NSPopUpButton) {
@@ -516,6 +566,7 @@ class SettingsWindowController: NSWindowController, NSWindowDelegate {
   @objc private func save() {
     commitPhrases()
     commitPadding()
+    commitTextAlpha()
     window?.close()
   }
 
@@ -526,6 +577,7 @@ class SettingsWindowController: NSWindowController, NSWindowDelegate {
     bottomColorWellDark.deactivate()
     commitPhrases()
     commitPadding()
+    commitTextAlpha()
     if let pw = previewWindow {
       window?.removeChildWindow(pw)
       pw.close()
@@ -600,6 +652,37 @@ class SettingsWindowController: NSWindowController, NSWindowDelegate {
     bottomPaddingStepper.integerValue = 20
     commitPadding()
   }
+
+  // MARK: - Text Opacity
+
+  @objc private func textAlphaSliderChanged(_ sender: NSSlider) {
+    let val = sender.doubleValue
+    Settings.shared.textAlpha = val
+    textAlphaField.stringValue = String(format: "%.2f", val)
+    commitTextAlpha()
+  }
+
+  @objc private func textAlphaFieldChanged(_ notification: Notification) {
+    let val = textAlphaField.doubleValue
+    Settings.shared.textAlpha = val
+    textAlphaSlider.doubleValue = val
+    commitTextAlpha()
+  }
+
+  @objc private func resetTextAlpha() {
+    textAlphaSlider.doubleValue = 0.92
+    textAlphaField.stringValue = "0.92"
+    Settings.shared.textAlpha = 0.92
+    commitTextAlpha()
+  }
+
+  private func commitTextAlpha() {
+    Settings.shared.textAlpha = textAlphaSlider.doubleValue
+    (NSApp.delegate as? AppDelegate)?.updateOverlayTextAlpha()
+    previewWindow?.updateTextAlpha()
+  }
+
+  // MARK: - Padding
 
   private func commitPadding() {
     Settings.shared.topPadding = Double(topPaddingField.integerValue)
@@ -690,5 +773,9 @@ private class PreviewWindow: NSWindow {
 
   func updatePadding(top: CGFloat, bottom: CGFloat) {
     overlayView.updatePadding(top: top, bottom: bottom)
+  }
+
+  func updateTextAlpha() {
+    overlayView.refreshTextColors()
   }
 }

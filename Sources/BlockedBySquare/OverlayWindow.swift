@@ -50,4 +50,8 @@ class OverlayWindow: NSWindow {
   func updatePadding(top: CGFloat, bottom: CGFloat) {
     content.updatePadding(top: top, bottom: bottom)
   }
+
+  func updateTextAlpha() {
+    content.refreshTextColors()
+  }
 }
