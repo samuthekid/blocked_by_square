@@ -338,7 +338,7 @@ class SettingsWindowController: NSWindowController, NSWindowDelegate {
             bottomRow.alignment = .centerY
 
             // ── Top padding row ──
-            let topPaddingLabel = NSTextField(labelWithString: "Top padding (px):")
+            let topPaddingLabel = NSTextField(labelWithString: "Top padding:")
             topPaddingLabel.alignment = .right
             topPaddingLabel.translatesAutoresizingMaskIntoConstraints = false
             topPaddingLabel.widthAnchor.constraint(equalToConstant: 130).isActive = true
@@ -368,16 +368,13 @@ class SettingsWindowController: NSWindowController, NSWindowDelegate {
             topPadReset.font = .systemFont(ofSize: 11)
             topPadReset.translatesAutoresizingMaskIntoConstraints = false
 
-            let topPadSpacer = NSView()
-            topPadSpacer.setContentHuggingPriority(.defaultLow, for: .horizontal)
-
-            let topPaddingRow = NSStackView(views: [topPaddingLabel, topPaddingField, topPaddingStepper, topPadSpacer, topPadReset])
+            let topPaddingRow = NSStackView(views: [topPaddingLabel, topPaddingField, topPaddingStepper, topPadReset])
             topPaddingRow.spacing = 8
             topPaddingRow.alignment = .centerY
             topPaddingRow.translatesAutoresizingMaskIntoConstraints = false
 
             // ── Bottom padding row ──
-            let bottomPaddingLabel = NSTextField(labelWithString: "Bottom padding (px):")
+            let bottomPaddingLabel = NSTextField(labelWithString: "Bottom padding:")
             bottomPaddingLabel.alignment = .right
             bottomPaddingLabel.translatesAutoresizingMaskIntoConstraints = false
             bottomPaddingLabel.widthAnchor.constraint(equalToConstant: 130).isActive = true
@@ -407,10 +404,7 @@ class SettingsWindowController: NSWindowController, NSWindowDelegate {
             bottomPadReset.font = .systemFont(ofSize: 11)
             bottomPadReset.translatesAutoresizingMaskIntoConstraints = false
 
-            let bottomPadSpacer = NSView()
-            bottomPadSpacer.setContentHuggingPriority(.defaultLow, for: .horizontal)
-
-            let bottomPaddingRow = NSStackView(views: [bottomPaddingLabel, bottomPaddingField, bottomPaddingStepper, bottomPadSpacer, bottomPadReset])
+            let bottomPaddingRow = NSStackView(views: [bottomPaddingLabel, bottomPaddingField, bottomPaddingStepper, bottomPadReset])
             bottomPaddingRow.spacing = 8
             bottomPaddingRow.alignment = .centerY
             bottomPaddingRow.translatesAutoresizingMaskIntoConstraints = false
