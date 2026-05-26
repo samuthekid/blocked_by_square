@@ -70,8 +70,8 @@ Click the menu bar icon → **Settings…** to configure:
 
 - **Activation shortcut** — click the field and press any modifier+key combo to record a new shortcut; ESC cancels recording
 - **Open at login** — toggle to launch BlockedBySquare automatically at login
-- **Top phrase** — optional text shown in the upper half of the glass square
-- **Bottom phrase** — optional text shown in the lower half of the glass square
+- **Top text** — optional text shown in the upper half of the glass square
+- **Bottom text** — optional text shown in the lower half of the glass square
 
 ---
 

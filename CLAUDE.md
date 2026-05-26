@@ -25,10 +25,10 @@ swift build -c release
 | `Sources/BlockedBySquare/main.swift` | Entry point. Sets activation policy to `.accessory` (no Dock icon, no menu bar icon from NSApp). |
 | `Sources/BlockedBySquare/AppDelegate.swift` | Core logic: menu bar item, accessibility check, global shortcut monitor, event tap, mouse tracking, screen lock. Lock mode is a toggleable state, not the entire app lifecycle. |
 | `Sources/BlockedBySquare/Settings.swift` | Singleton persisting shortcut keycode, modifier flags, and two text phrases to `UserDefaults`. |
-| `Sources/BlockedBySquare/SettingsWindowController.swift` | Settings window UI: shortcut recorder field, top/bottom phrase text fields, Save button. |
+| `Sources/BlockedBySquare/SettingsWindowController.swift` | Settings window UI: shortcut recorder field, top/bottom text fields, Save button. |
 | `Sources/BlockedBySquare/ShortcutRecorder.swift` | `NSTextField` subclass that captures a key+modifier combo via a local event monitor. Also contains `formatShortcut` and `keyCodeToString` helpers. |
 | `Sources/BlockedBySquare/OverlayWindow.swift` | One borderless fullscreen `NSWindow` per display. Created on lock activation, destroyed on deactivation. Ignores mouse events — the CGEvent tap handles blocking. |
-| `Sources/BlockedBySquare/OverlayView.swift` | Renders the glass square via `CALayer` sublayers plus two `CATextLayer`s for the top/bottom phrases. |
+| `Sources/BlockedBySquare/OverlayView.swift` | Renders the glass square via `CALayer` sublayers plus two `CATextLayer`s for the top/bottom text. |
 
 ---
 
@@ -66,11 +66,11 @@ Primary: loads `SACLockScreenImmediate` from the private `login.framework` at ru
 1. Semi-transparent white fill (22% opacity)
 2. Diagonal specular gradient (white, top-right to bottom-left, 45% → 8% → 0%)
 3. White glow shadow on the container layer (blur radius 28, no offset)
-4. `CATextLayer` for the top phrase — frame top sits 25px below the square's top edge
-5. `CATextLayer` for the bottom phrase — frame sized to single-line height so text bottom sits ~25px above the square's bottom edge (matching the top phrase's padding)
+4. `CATextLayer` for the top text — frame top sits 25px below the square's top edge
+5. `CATextLayer` for the bottom text — frame sized to single-line height so text bottom sits ~25px above the square's bottom edge (matching the top text's padding)
 
 **CATextLayer coordinate note**
-`CATextLayer` renders text starting from the **top of its frame** downward. In a non-flipped `NSView`, CALayer coordinates have y=0 at the bottom. The top phrase frame's maxY = 175 (25px from the 200px square's top). The bottom phrase frame is sized to ~22px tall with maxY = 42, so single-line text ends ~26px from the bottom edge.
+`CATextLayer` renders text starting from the **top of its frame** downward. In a non-flipped `NSView`, CALayer coordinates have y=0 at the bottom. The top text frame's maxY = 175 (25px from the 200px square's top). The bottom text frame is sized to ~22px tall with maxY = 42, so single-line text ends ~26px from the bottom edge.
 
 **Shortcut recorder (`ShortcutRecorder.swift`)**
 `NSTextField` with `isEditable = false`. `mouseDown` installs a local event monitor (`NSEvent.addLocalMonitorForEvents`) that intercepts `keyDown` before dispatch — this is necessary because `NSTextField`'s field editor would otherwise steal focus and swallow events. The monitor is removed immediately after a valid combo is captured or ESC cancels.

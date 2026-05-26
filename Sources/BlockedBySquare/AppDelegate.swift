@@ -113,6 +113,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     updateOverlayPhrases()
     updateOverlayTextColors()
     updateOverlayTextAlpha()
+    updateOverlayFontSizes()
     updateOverlayPadding()
 
     startMouseTracking()
@@ -163,6 +164,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
   func updateOverlayTextAlpha() {
     for w in overlayWindows { w.updateTextAlpha() }
+  }
+
+  func updateOverlayFontSizes() {
+    for w in overlayWindows { w.updateFontSizes() }
   }
 
   func updateOverlayPadding() {

@@ -47,6 +47,10 @@ class OverlayWindow: NSWindow {
       bottomLight: bottomLight, bottomDark: bottomDark)
   }
 
+  func updateFontSizes() {
+    content.updateFontSizes()
+  }
+
   func updatePadding(top: CGFloat, bottom: CGFloat) {
     content.updatePadding(top: top, bottom: bottom)
   }

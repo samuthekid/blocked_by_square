@@ -48,13 +48,17 @@ class SettingsWindowController: NSWindowController, NSWindowDelegate {
   private var topPaddingStepper: NSStepper!
   private var bottomPaddingField: NSTextField!
   private var bottomPaddingStepper: NSStepper!
+  private var topFontSizeField: NSTextField!
+  private var topFontSizeStepper: NSStepper!
+  private var bottomFontSizeField: NSTextField!
+  private var bottomFontSizeStepper: NSStepper!
   private var textAlphaSlider: NSSlider!
   private var textAlphaField: NSTextField!
   private var previewWindow: PreviewWindow?
 
   convenience init() {
     let window = NSWindow(
-      contentRect: NSRect(x: 0, y: 0, width: 540, height: 538),
+      contentRect: NSRect(x: 0, y: 0, width: 540, height: 610),
       styleMask: [.titled, .closable],
       backing: .buffered,
       defer: false
@@ -261,8 +265,8 @@ class SettingsWindowController: NSWindowController, NSWindowDelegate {
       hint.font = .systemFont(ofSize: 11)
       hint.textColor = .tertiaryLabelColor
 
-      // ── Top phrase row ──
-      let topLabel = NSTextField(labelWithString: "Top phrase:")
+      // ── Top text row ──
+      let topLabel = NSTextField(labelWithString: "Top text:")
       topLabel.alignment = .right
       topLabel.translatesAutoresizingMaskIntoConstraints = false
       topLabel.widthAnchor.constraint(equalToConstant: 130).isActive = true
@@ -302,8 +306,8 @@ class SettingsWindowController: NSWindowController, NSWindowDelegate {
       topRow.spacing = 8
       topRow.alignment = .centerY
 
-      // ── Bottom phrase row ──
-      let bottomLabel = NSTextField(labelWithString: "Bottom phrase:")
+      // ── Bottom text row ──
+      let bottomLabel = NSTextField(labelWithString: "Bottom text:")
       bottomLabel.alignment = .right
       bottomLabel.translatesAutoresizingMaskIntoConstraints = false
       bottomLabel.widthAnchor.constraint(equalToConstant: 130).isActive = true
@@ -345,6 +349,45 @@ class SettingsWindowController: NSWindowController, NSWindowDelegate {
       bottomRow.spacing = 8
       bottomRow.alignment = .centerY
 
+      // ── Top font size row ──
+      let topFontSizeLabel = NSTextField(labelWithString: "Top font size:")
+      topFontSizeLabel.alignment = .right
+      topFontSizeLabel.translatesAutoresizingMaskIntoConstraints = false
+      topFontSizeLabel.widthAnchor.constraint(equalToConstant: 130).isActive = true
+
+      topFontSizeField = NSTextField()
+      let fontSizeFmt = NumberFormatter()
+      fontSizeFmt.minimum = 8
+      fontSizeFmt.maximum = 72
+      topFontSizeField.formatter = fontSizeFmt
+      topFontSizeField.bezelStyle = .roundedBezel
+      topFontSizeField.isBordered = true
+      topFontSizeField.stringValue = "\(Int(Settings.shared.topPhraseFontSize))"
+      topFontSizeField.translatesAutoresizingMaskIntoConstraints = false
+      topFontSizeField.widthAnchor.constraint(equalToConstant: 60).isActive = true
+
+      topFontSizeStepper = NSStepper()
+      topFontSizeStepper.minValue = 8
+      topFontSizeStepper.maxValue = 72
+      topFontSizeStepper.integerValue = Int(Settings.shared.topPhraseFontSize)
+      topFontSizeStepper.tag = 0
+      topFontSizeStepper.target = self
+      topFontSizeStepper.action = #selector(fontSizeStepperChanged(_:))
+      topFontSizeStepper.translatesAutoresizingMaskIntoConstraints = false
+
+      let topFontSizeReset = NSButton(
+        title: "Reset", target: self, action: #selector(resetTopFontSize))
+      topFontSizeReset.bezelStyle = .rounded
+      topFontSizeReset.font = .systemFont(ofSize: 11)
+      topFontSizeReset.translatesAutoresizingMaskIntoConstraints = false
+
+      let topFontSizeRow = NSStackView(views: [
+        topFontSizeLabel, topFontSizeField, topFontSizeStepper, topFontSizeReset,
+      ])
+      topFontSizeRow.spacing = 8
+      topFontSizeRow.alignment = .centerY
+      topFontSizeRow.translatesAutoresizingMaskIntoConstraints = false
+
       // ── Top padding row ──
       let topPaddingLabel = NSTextField(labelWithString: "Top padding:")
       topPaddingLabel.alignment = .right
@@ -382,6 +425,42 @@ class SettingsWindowController: NSWindowController, NSWindowDelegate {
       topPaddingRow.spacing = 8
       topPaddingRow.alignment = .centerY
       topPaddingRow.translatesAutoresizingMaskIntoConstraints = false
+
+      // ── Bottom font size row ──
+      let bottomFontSizeLabel = NSTextField(labelWithString: "Bottom font size:")
+      bottomFontSizeLabel.alignment = .right
+      bottomFontSizeLabel.translatesAutoresizingMaskIntoConstraints = false
+      bottomFontSizeLabel.widthAnchor.constraint(equalToConstant: 130).isActive = true
+
+      bottomFontSizeField = NSTextField()
+      bottomFontSizeField.formatter = fontSizeFmt
+      bottomFontSizeField.bezelStyle = .roundedBezel
+      bottomFontSizeField.isBordered = true
+      bottomFontSizeField.stringValue = "\(Int(Settings.shared.bottomPhraseFontSize))"
+      bottomFontSizeField.translatesAutoresizingMaskIntoConstraints = false
+      bottomFontSizeField.widthAnchor.constraint(equalToConstant: 60).isActive = true
+
+      bottomFontSizeStepper = NSStepper()
+      bottomFontSizeStepper.minValue = 8
+      bottomFontSizeStepper.maxValue = 72
+      bottomFontSizeStepper.integerValue = Int(Settings.shared.bottomPhraseFontSize)
+      bottomFontSizeStepper.tag = 1
+      bottomFontSizeStepper.target = self
+      bottomFontSizeStepper.action = #selector(fontSizeStepperChanged(_:))
+      bottomFontSizeStepper.translatesAutoresizingMaskIntoConstraints = false
+
+      let bottomFontSizeReset = NSButton(
+        title: "Reset", target: self, action: #selector(resetBottomFontSize))
+      bottomFontSizeReset.bezelStyle = .rounded
+      bottomFontSizeReset.font = .systemFont(ofSize: 11)
+      bottomFontSizeReset.translatesAutoresizingMaskIntoConstraints = false
+
+      let bottomFontSizeRow = NSStackView(views: [
+        bottomFontSizeLabel, bottomFontSizeField, bottomFontSizeStepper, bottomFontSizeReset,
+      ])
+      bottomFontSizeRow.spacing = 8
+      bottomFontSizeRow.alignment = .centerY
+      bottomFontSizeRow.translatesAutoresizingMaskIntoConstraints = false
 
       // ── Bottom padding row ──
       let bottomPaddingLabel = NSTextField(labelWithString: "Bottom padding:")
@@ -473,8 +552,10 @@ class SettingsWindowController: NSWindowController, NSWindowDelegate {
       card.addSubview(headerRow)
       card.addSubview(hint)
       card.addSubview(topRow)
+      card.addSubview(topFontSizeRow)
       card.addSubview(topPaddingRow)
       card.addSubview(bottomRow)
+      card.addSubview(bottomFontSizeRow)
       card.addSubview(bottomPaddingRow)
       card.addSubview(textAlphaRow)
       NSLayoutConstraint.activate([
@@ -490,7 +571,11 @@ class SettingsWindowController: NSWindowController, NSWindowDelegate {
         topRow.leadingAnchor.constraint(equalTo: card.leadingAnchor, constant: inset),
         topRow.trailingAnchor.constraint(equalTo: card.trailingAnchor, constant: -inset),
 
-        topPaddingRow.topAnchor.constraint(equalTo: topRow.bottomAnchor, constant: 8),
+        topFontSizeRow.topAnchor.constraint(equalTo: topRow.bottomAnchor, constant: 8),
+        topFontSizeRow.leadingAnchor.constraint(equalTo: card.leadingAnchor, constant: inset),
+        topFontSizeRow.trailingAnchor.constraint(equalTo: card.trailingAnchor, constant: -inset),
+
+        topPaddingRow.topAnchor.constraint(equalTo: topFontSizeRow.bottomAnchor, constant: 8),
         topPaddingRow.leadingAnchor.constraint(equalTo: card.leadingAnchor, constant: inset),
         topPaddingRow.trailingAnchor.constraint(equalTo: card.trailingAnchor, constant: -inset),
 
@@ -498,7 +583,11 @@ class SettingsWindowController: NSWindowController, NSWindowDelegate {
         bottomRow.leadingAnchor.constraint(equalTo: card.leadingAnchor, constant: inset),
         bottomRow.trailingAnchor.constraint(equalTo: card.trailingAnchor, constant: -inset),
 
-        bottomPaddingRow.topAnchor.constraint(equalTo: bottomRow.bottomAnchor, constant: 8),
+        bottomFontSizeRow.topAnchor.constraint(equalTo: bottomRow.bottomAnchor, constant: 8),
+        bottomFontSizeRow.leadingAnchor.constraint(equalTo: card.leadingAnchor, constant: inset),
+        bottomFontSizeRow.trailingAnchor.constraint(equalTo: card.trailingAnchor, constant: -inset),
+
+        bottomPaddingRow.topAnchor.constraint(equalTo: bottomFontSizeRow.bottomAnchor, constant: 8),
         bottomPaddingRow.leadingAnchor.constraint(equalTo: card.leadingAnchor, constant: inset),
         bottomPaddingRow.trailingAnchor.constraint(equalTo: card.trailingAnchor, constant: -inset),
 
@@ -556,6 +645,13 @@ class SettingsWindowController: NSWindowController, NSWindowDelegate {
     NotificationCenter.default.addObserver(
       self, selector: #selector(textAlphaFieldChanged),
       name: NSControl.textDidChangeNotification, object: textAlphaField)
+
+    NotificationCenter.default.addObserver(
+      self, selector: #selector(fontSizeFieldChanged),
+      name: NSControl.textDidChangeNotification, object: topFontSizeField)
+    NotificationCenter.default.addObserver(
+      self, selector: #selector(fontSizeFieldChanged),
+      name: NSControl.textDidChangeNotification, object: bottomFontSizeField)
   }
 
   @objc private func securityLevelChanged(_ sender: NSPopUpButton) {
@@ -566,6 +662,7 @@ class SettingsWindowController: NSWindowController, NSWindowDelegate {
   @objc private func save() {
     commitPhrases()
     commitPadding()
+    commitFontSizes()
     commitTextAlpha()
     window?.close()
   }
@@ -577,6 +674,7 @@ class SettingsWindowController: NSWindowController, NSWindowDelegate {
     bottomColorWellDark.deactivate()
     commitPhrases()
     commitPadding()
+    commitFontSizes()
     commitTextAlpha()
     if let pw = previewWindow {
       window?.removeChildWindow(pw)
@@ -651,6 +749,54 @@ class SettingsWindowController: NSWindowController, NSWindowDelegate {
     bottomPaddingField.stringValue = "20"
     bottomPaddingStepper.integerValue = 20
     commitPadding()
+  }
+
+  // MARK: - Font Size
+
+  @objc private func fontSizeStepperChanged(_ sender: NSStepper) {
+    let val = sender.integerValue
+    if sender.tag == 0 {
+      Settings.shared.topPhraseFontSize = Double(val)
+      topFontSizeField.stringValue = "\(val)"
+    } else {
+      Settings.shared.bottomPhraseFontSize = Double(val)
+      bottomFontSizeField.stringValue = "\(val)"
+    }
+    commitFontSizes()
+  }
+
+  @objc private func fontSizeFieldChanged(_ notification: Notification) {
+    guard let field = notification.object as? NSTextField else { return }
+    let val = field.integerValue
+    if field === topFontSizeField {
+      Settings.shared.topPhraseFontSize = Double(val)
+      topFontSizeStepper.integerValue = val
+    } else {
+      Settings.shared.bottomPhraseFontSize = Double(val)
+      bottomFontSizeStepper.integerValue = val
+    }
+    commitFontSizes()
+  }
+
+  @objc private func resetTopFontSize() {
+    Settings.shared.topPhraseFontSize = 13
+    topFontSizeField.stringValue = "13"
+    topFontSizeStepper.integerValue = 13
+    commitFontSizes()
+  }
+
+  @objc private func resetBottomFontSize() {
+    Settings.shared.bottomPhraseFontSize = 13
+    bottomFontSizeField.stringValue = "13"
+    bottomFontSizeStepper.integerValue = 13
+    commitFontSizes()
+  }
+
+  private func commitFontSizes() {
+    Settings.shared.topPhraseFontSize = Double(topFontSizeField.integerValue)
+    Settings.shared.bottomPhraseFontSize = Double(bottomFontSizeField.integerValue)
+    (NSApp.delegate as? AppDelegate)?.updateOverlayFontSizes()
+    previewWindow?.updateFontSizes()
   }
 
   // MARK: - Text Opacity
@@ -777,5 +923,9 @@ private class PreviewWindow: NSWindow {
 
   func updateTextAlpha() {
     overlayView.refreshTextColors()
+  }
+
+  func updateFontSizes() {
+    overlayView.updateFontSizes()
   }
 }

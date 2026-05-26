@@ -119,6 +119,16 @@ final class Settings {
     set { defaults.set(newValue, forKey: "bottomPadding") }
   }
 
+  var topPhraseFontSize: Double {
+    get { defaults.object(forKey: "topPhraseFontSize") as? Double ?? 14 }
+    set { defaults.set(newValue, forKey: "topPhraseFontSize") }
+  }
+
+  var bottomPhraseFontSize: Double {
+    get { defaults.object(forKey: "bottomPhraseFontSize") as? Double ?? 14 }
+    set { defaults.set(newValue, forKey: "bottomPhraseFontSize") }
+  }
+
   var textAlpha: Double {
     get { defaults.object(forKey: "textAlpha") as? Double ?? 0.9 }
     set { defaults.set(newValue, forKey: "textAlpha") }

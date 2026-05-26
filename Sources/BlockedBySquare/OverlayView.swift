@@ -61,23 +61,29 @@ class OverlayView: NSView {
     )
 
     let scale = NSScreen.main?.backingScaleFactor ?? 2.0
-    let textFont = NSFont.systemFont(ofSize: 13, weight: .medium) as CTFont
-
-    for layer in [topTextLayer, bottomTextLayer] {
-      layer.font = textFont
-      layer.fontSize = 13
-      layer.foregroundColor =
-        NSColor.white.withAlphaComponent(CGFloat(Settings.shared.textAlpha)).cgColor
-      layer.alignmentMode = .center
-      layer.isWrapped = true
-      layer.truncationMode = .end
-      layer.contentsScale = scale
-      layer.actions = ["contents": NSNull()]
-      textView.layer?.addSublayer(layer)
-    }
-
-    bottomTextLayer.isWrapped = false
     let s = Settings.shared
+
+    topTextLayer.font = NSFont.systemFont(ofSize: CGFloat(s.topPhraseFontSize), weight: .medium) as CTFont
+    topTextLayer.fontSize = CGFloat(s.topPhraseFontSize)
+    topTextLayer.foregroundColor =
+      NSColor.white.withAlphaComponent(CGFloat(s.textAlpha)).cgColor
+    topTextLayer.alignmentMode = .center
+    topTextLayer.isWrapped = true
+    topTextLayer.truncationMode = .end
+    topTextLayer.contentsScale = scale
+    topTextLayer.actions = ["contents": NSNull()]
+    textView.layer?.addSublayer(topTextLayer)
+
+    bottomTextLayer.font = NSFont.systemFont(ofSize: CGFloat(s.bottomPhraseFontSize), weight: .medium) as CTFont
+    bottomTextLayer.fontSize = CGFloat(s.bottomPhraseFontSize)
+    bottomTextLayer.foregroundColor =
+      NSColor.white.withAlphaComponent(CGFloat(s.textAlpha)).cgColor
+    bottomTextLayer.alignmentMode = .center
+    bottomTextLayer.isWrapped = false
+    bottomTextLayer.truncationMode = .end
+    bottomTextLayer.contentsScale = scale
+    bottomTextLayer.actions = ["contents": NSNull()]
+    textView.layer?.addSublayer(bottomTextLayer)
     updatePadding(top: CGFloat(s.topPadding), bottom: CGFloat(s.bottomPadding))
   }
 
@@ -131,6 +137,16 @@ class OverlayView: NSView {
 
   func refreshTextColors() {
     applyTextColors()
+  }
+
+  func updateFontSizes() {
+    let s = Settings.shared
+    let topSize = CGFloat(s.topPhraseFontSize)
+    let bottomSize = CGFloat(s.bottomPhraseFontSize)
+    topTextLayer.font = NSFont.systemFont(ofSize: topSize, weight: .medium) as CTFont
+    topTextLayer.fontSize = topSize
+    bottomTextLayer.font = NSFont.systemFont(ofSize: bottomSize, weight: .medium) as CTFont
+    bottomTextLayer.fontSize = bottomSize
   }
 
   func updatePadding(top: CGFloat, bottom: CGFloat) {
