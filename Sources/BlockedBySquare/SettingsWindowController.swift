@@ -738,16 +738,18 @@ class SettingsWindowController: NSWindowController, NSWindowDelegate {
   }
 
   @objc private func resetTopPadding() {
-    Settings.shared.topPadding = 25
-    topPaddingField.stringValue = "25"
-    topPaddingStepper.integerValue = 25
+    let val = Settings.defaultTopPadding
+    Settings.shared.topPadding = val
+    topPaddingField.stringValue = "\(Int(val))"
+    topPaddingStepper.integerValue = Int(val)
     commitPadding()
   }
 
   @objc private func resetBottomPadding() {
-    Settings.shared.bottomPadding = 20
-    bottomPaddingField.stringValue = "20"
-    bottomPaddingStepper.integerValue = 20
+    let val = Settings.defaultBottomPadding
+    Settings.shared.bottomPadding = val
+    bottomPaddingField.stringValue = "\(Int(val))"
+    bottomPaddingStepper.integerValue = Int(val)
     commitPadding()
   }
 
@@ -779,16 +781,18 @@ class SettingsWindowController: NSWindowController, NSWindowDelegate {
   }
 
   @objc private func resetTopFontSize() {
-    Settings.shared.topPhraseFontSize = 13
-    topFontSizeField.stringValue = "13"
-    topFontSizeStepper.integerValue = 13
+    let val = Settings.defaultTopPhraseFontSize
+    Settings.shared.topPhraseFontSize = val
+    topFontSizeField.stringValue = "\(Int(val))"
+    topFontSizeStepper.integerValue = Int(val)
     commitFontSizes()
   }
 
   @objc private func resetBottomFontSize() {
-    Settings.shared.bottomPhraseFontSize = 13
-    bottomFontSizeField.stringValue = "13"
-    bottomFontSizeStepper.integerValue = 13
+    let val = Settings.defaultBottomPhraseFontSize
+    Settings.shared.bottomPhraseFontSize = val
+    bottomFontSizeField.stringValue = "\(Int(val))"
+    bottomFontSizeStepper.integerValue = Int(val)
     commitFontSizes()
   }
 
@@ -816,9 +820,10 @@ class SettingsWindowController: NSWindowController, NSWindowDelegate {
   }
 
   @objc private func resetTextAlpha() {
-    textAlphaSlider.doubleValue = 0.92
-    textAlphaField.stringValue = "0.92"
-    Settings.shared.textAlpha = 0.92
+    let val = Settings.defaultTextAlpha
+    textAlphaSlider.doubleValue = val
+    textAlphaField.stringValue = String(format: "%.2f", val)
+    Settings.shared.textAlpha = val
     commitTextAlpha()
   }
 
