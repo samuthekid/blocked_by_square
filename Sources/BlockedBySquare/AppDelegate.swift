@@ -304,5 +304,13 @@ private func globalEventCallback(
     DispatchQueue.main.async { delegate.deactivateLockMode() }
   }
 
-  return nil  // swallow every event while locked
+  // Let key-up events through so the system's per-key state stays balanced.
+  // The shortcut's key-down leaks in before the tap exists; swallowing its
+  // key-up would leave that key logically "stuck down" (eats the next press).
+  // Key-up alone produces no input, so blocking is unaffected.
+  if type == .keyUp {
+    return Unmanaged.passUnretained(event)
+  }
+
+  return nil  // swallow everything else while locked
 }
