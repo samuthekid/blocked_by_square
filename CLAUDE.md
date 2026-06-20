@@ -1,115 +1,95 @@
 # BlockedBySquare — Codebase Guide
 
-macOS menu bar utility that blocks all input system-wide and displays a glowing glass square around the cursor. Triggered on demand via a configurable shortcut or the menu bar. Press ESC to either lock the screen or just exit lock mode (configurable).
+macOS menu-bar app (no Dock icon). On a shortcut, it installs a system-wide
+CGEvent tap that swallows all keyboard/mouse input and draws a glowing glass
+square around the cursor. ESC exits — and locks the screen unless security
+level is "low". Swift Package Manager, no Xcode project, ~1.8k lines.
 
----
-
-## Build
+## Build & run
 
 ```bash
-# Compile only
-swift build -c release
-
-# Full app bundle + code signing (use this for distribution/testing)
-./bundle.sh
-
-# Additional bundle.sh flags:
-# --run       Build and immediately open the app
-# --settings  Build, open, and immediately show Settings window
-# --reset     Launch with --reset to wipe all saved UserDefaults
+swift build -c release      # compile only
+./bundle.sh                 # build → .app → ad-hoc sign (use this, not raw swift build)
+./bundle.sh --run           # ...and launch
+./bundle.sh --run --reset   # ...and wipe saved UserDefaults first (--reset only acts on launch)
+./bundle.sh --settings      # ...and open Settings on launch (dev-only Info.plist key)
+./bundle.sh --release       # Developer ID + Hardened Runtime + notarize + staple
 ```
 
-`bundle.sh` creates the `.app` structure and signs it with a designated requirement keyed to the bundle ID (`com.blockedbysquare.app`), **not** the binary hash. This is intentional — it preserves the TCC Accessibility permission across rebuilds. Never replace this with `codesign --force --sign -` (ad-hoc), which would invalidate the permission on every rebuild.
+There is no test target — verify by running the app.
 
----
+**Signing matters more than usual here.** Default `bundle.sh` signs with a
+designated requirement keyed to the *bundle ID* (`com.blockedbysquare.app`),
+not the binary hash. This keeps the TCC Accessibility grant alive across
+rebuilds. **Do not** switch to plain ad-hoc (`codesign --sign -` without the
+`--requirements`) — every rebuild would change the cdhash and force the user
+to re-grant Accessibility.
 
-## Architecture
+`--release` needs `DEVID_IDENTITY`, `APPLE_ID`, `TEAM_ID` (prompts for an
+app-specific password). `notarize.sh` is a thin wrapper with those values
+hard-coded for the owner's account.
+
+## Files
 
 | File | Role |
 | ---- | ---- |
-| `Sources/BlockedBySquare/main.swift` | Entry point. Sets activation policy to `.accessory`. Handles `--reset` CLI flag by calling `Settings.reset()` before launching. |
-| `Sources/BlockedBySquare/AppDelegate.swift` | Core logic: menu bar item, accessibility check, global shortcut monitor, event tap, mouse tracking, screen lock. Lock mode is a toggleable state, not the entire app lifecycle. |
-| `Sources/BlockedBySquare/Settings.swift` | Singleton persisting all user preferences to `UserDefaults`. Includes a static `reset()` method that wipes the bundle's defaults domain. |
-| `Sources/BlockedBySquare/SettingsWindowController.swift` | Settings window UI (540×610). Card-based layout with live preview. Contains `PhraseField` (emoji-palette-aware `NSTextField`) and `LaunchToggle` (SwiftUI `SMAppService` toggle). |
-| `Sources/BlockedBySquare/ShortcutRecorder.swift` | `ShortcutField` — `NSTextField` subclass that captures a key+modifier combo via a local event monitor. Also contains `formatShortcut`, `keyCodeToString`, and `keyCodeToMenuEquivalent` helpers. |
-| `Sources/BlockedBySquare/OverlayWindow.swift` | One borderless fullscreen `NSWindow` per display. Created on lock activation, destroyed on deactivation. Ignores mouse events — the CGEvent tap handles blocking. |
-| `Sources/BlockedBySquare/OverlayView.swift` | Renders the glass square. On macOS 26+ uses SwiftUI `GlassSquareView` with `.glassEffect`; on older macOS uses `NSVisualEffectView`. Two `CATextLayer`s for top/bottom text in a separate `textView` so opacity changes don't affect glass appearance. |
+| `main.swift` | Entry point. `.accessory` activation policy; handles `--reset`. |
+| `AppDelegate.swift` | Everything runtime: menu bar, accessibility check, global shortcut, event tap, mouse polling, screen lock. Lock mode is a toggled state, not the app lifecycle. |
+| `Settings.swift` | `UserDefaults`-backed singleton. All defaults live as `static let`s at the top; `reset()` wipes the domain. |
+| `SettingsWindowController.swift` | Settings UI (~940 lines) with a live preview window. Contains `PhraseField` (emoji-palette-aware) and `LaunchToggle` (`SMAppService` login item). |
+| `ShortcutRecorder.swift` | `ShortcutField` captures a key+modifier combo via a local event monitor; key-code formatting helpers. |
+| `OverlayWindow.swift` | One borderless fullscreen window per display, created on lock, destroyed on exit. |
+| `OverlayView.swift` | The glass square: SwiftUI `.glassEffect` on macOS 26+, `NSVisualEffectView` fallback below. |
 
----
+## Flow
 
-## App Lifecycle
+Idle in the menu bar. **Activate** (global shortcut `⌘⇧L` by default, or "Lock
+Now"): tear down the shortcut monitor, spawn an overlay per screen, start the
+60 Hz mouse timer, install the event tap. **Exit** (ESC, key code 53): disable
+the tap, lock the screen if `securityLevel == "max"`, close overlays, re-arm
+the shortcut monitor after 300 ms.
 
-The app starts idle in the menu bar. Lock mode is activated by:
+## Gotchas (the non-obvious stuff)
 
-- The configurable global keyboard shortcut (default: ⌘⇧L), monitored via `NSEvent.addGlobalMonitorForEvents`
-- "Lock Now" in the menu bar menu
+- **Event tap is `.cgSessionEventTap`, not HID scope** — required to swallow
+  input before any app sees it. The callback returns `nil` for everything
+  except: ESC (triggers exit) and `keyUp` (passed through, see below). It also
+  re-enables itself on `tapDisabledByTimeout`/`ByUserInput`.
 
-On ESC during lock mode: behavior depends on the **security level** setting:
+- **`keyUp` is deliberately let through** (`AppDelegate.swift` ~L307). The
+  activation shortcut's key-*down* leaks in before the tap exists; if we also
+  swallowed its key-*up*, the system would think that key is held forever and
+  eat the next press. This is the "L key stuck" fix — don't "simplify" it to
+  swallow everything.
 
-- **Max** (default): screen is locked via `SACLockScreenImmediate` (or the Ctrl+Cmd+Q fallback), then overlays close and the event tap is disabled.
-- **Low**: overlays close and event tap is disabled, no screen lock.
+- **Mouse tracked by a 60 Hz `Timer`**, not `NSEvent` mouse-moved. Move events
+  are unreliable across monitors when the app has no key window; the timer
+  polls `NSEvent.mouseLocation` and routes to the containing overlay.
 
-In both cases the global shortcut monitor is re-armed after a 300 ms delay to avoid accidentally re-triggering from the ESC event dispatch.
+- **Screen lock uses a private symbol.** `SACLockScreenImmediate` from
+  `login.framework`, loaded via `dlopen`/`dlsym`. If that ever fails it falls
+  back to injecting Ctrl+Cmd+Q. The tap is disabled *before* locking so the
+  injected event isn't swallowed.
 
----
+- **Global monitor vs. event tap are mutually exclusive.** The shortcut
+  monitor (`addGlobalMonitorForEvents`, observe-only) runs *only* when idle;
+  the tap runs *only* when locked. The 300 ms re-arm delay on exit stops the
+  ESC dispatch from re-triggering.
 
-## Key Technical Decisions
+- **`CATextLayer` y-coordinates are top-down inside a bottom-up CALayer.**
+  `OverlayView.updatePadding` accounts for this — top text frame's maxY =
+  `squareSize - topPadding`, bottom text starts at `y = bottomPadding`. Text
+  lives in a sibling `textView` so opacity changes don't touch the glass.
 
-**Event tap scope — `cgSessionEventTap`**
-The tap is installed at session scope, not the default HID scope. This is required to block input globally before it reaches any application. The tap callback returns `nil` for every event, swallowing it. ESC (key code 53) is the only event acted on before being discarded. The tap also re-enables itself if disabled by timeout or user input.
+- **Settings has separate light/dark phrase colors** with a fallback to the
+  old single-color keys (`topPhraseColor`/`bottomPhraseColor`) for migration.
 
-**Global shortcut monitor — `NSEvent.addGlobalMonitorForEvents`**
-Used only when NOT in lock mode to watch for the activation shortcut. It observes events without blocking them (unlike the CGEvent tap). The monitor is torn down before the event tap is enabled, and re-armed after lock mode exits (with a 300 ms delay).
+## Permissions & platform
 
-**Mouse tracking — 60 Hz `Timer` poll**
-`NSEvent` mouse-moved events are unreliable for cross-monitor tracking when the app has no key window. A repeating `Timer` at ~16.67 ms polls `NSEvent.mouseLocation` and routes to the matching overlay window.
-
-**Window level — `.screenSaverWindow - 1`**
-The overlay windows sit above almost everything but below the actual screen saver. `canBecomeKey` and `canBecomeMain` are both `false` — the windows never steal focus. `collectionBehavior` includes `.canJoinAllSpaces` and `.fullScreenAuxiliary`. Windows are created fresh on each lock activation so screen configuration changes are picked up.
-
-**Security level**
-Controlled by `Settings.shared.securityLevel` ("max" or "low"). Checked in `deactivateLockMode()`. "Max" calls `lockScreen()`; "Low" skips it. Both close overlays and re-arm the shortcut.
-
-**Screen lock**
-Primary: loads `SACLockScreenImmediate` from the private `login.framework` at runtime via `dlopen`/`dlsym`. Fallback: injects a Ctrl+Cmd+Q `CGEvent` (the standard lock shortcut since High Sierra). The event tap is disabled before locking so the injected event isn't swallowed.
-
-**Glass square rendering (`OverlayView.swift`)**
-Branched on OS version:
-
-- **macOS 26+**: `NSHostingView` wrapping a SwiftUI `GlassSquareView` with `.glassEffect(.regular, in: RoundedRectangle)`. The system handles the glass material; a white glow shadow is applied to the hosting layer.
-- **macOS 13–25**: `NSVisualEffectView` with `.hudWindow` material, `.behindWindow` blending, 20 pt continuous corner radius, 0.4-opacity white border, and a white glow shadow.
-
-Text layers live in a sibling `textView` NSView so that changing the glass opacity never affects text rendering. Colors are updated in `viewDidChangeEffectiveAppearance()` to respond to system appearance changes at runtime.
-
-**CATextLayer coordinate note**
-`CATextLayer` renders text starting from the **top of its frame** downward. In a non-flipped `NSView`, CALayer coordinates have y=0 at the bottom. `updatePadding(top:bottom:)` places the top text so its frame's maxY = `squareSize - topPadding`, and the bottom text's frame starts at y = `bottomPadding`.
-
-**Shortcut recorder (`ShortcutRecorder.swift`)**
-`ShortcutField` is an `NSTextField` with `isEditable = false`. `mouseDown` installs a local event monitor (`NSEvent.addLocalMonitorForEvents`) that intercepts `keyDown` before dispatch — necessary because the field editor would otherwise steal focus and swallow events. The monitor is removed immediately after a valid combo is captured or ESC cancels.
-
-**Live settings preview**
-`SettingsWindowController` owns a `PreviewWindow` (a 220×220 borderless `NSWindow`) that is added as a child window below the settings panel. It shows a live `OverlayView` that updates in real time as the user types phrases, adjusts colors, padding, font sizes, and opacity — without requiring Save.
-
-**Launch at login**
-`LaunchToggle` (a SwiftUI `View` embedded via `NSHostingView`) registers/unregisters the app as a login item using `SMAppService.mainApp`.
-
-**Emoji palette support**
-`PhraseField` overrides `performKeyEquivalent` to open the system character palette (⌘⌃Space) when that combo is pressed, since `NSTextView`/field-editor shortcuts don't always propagate correctly.
-
----
-
-## Permissions
-
-Requires Accessibility (`AXIsProcessTrustedWithOptions`). Checked in `applicationDidFinishLaunching` — shows an alert with a direct link to System Settings, then terminates if denied. The permission is tied to the app bundle's code signature, which is why the designated-requirement signing strategy matters.
-
-`NSEvent.addGlobalMonitorForEvents` for keyboard events also relies on Accessibility being granted.
-
----
-
-## Platform Constraints
-
-- **Minimum OS:** macOS 13 Ventura (`Package.swift` target, `Info.plist` `LSMinimumSystemVersion`)
-- Glass effect: `.glassEffect` API is macOS 26+ only; `NSVisualEffectView` is used as fallback
-- `SACLockScreenImmediate` is a private symbol — it could break in future OS versions; the fallback handles this gracefully
-- `LSUIElement = true` in `Info.plist` keeps the app out of the Dock and App Switcher; the `NSStatusItem` provides the only UI entry point
-- `BlockedBySquareOpenSettingsOnLaunch` in `Info.plist` (injected by `bundle.sh --settings`) causes the settings window to open immediately after launch — used for development only
+- **Accessibility is mandatory** (`AXIsProcessTrustedWithOptions`, checked at
+  launch — alert + System Settings deep link, then quit if denied). Both the
+  event tap and the global monitor need it. The grant is tied to the code
+  signature — hence the signing note above.
+- **macOS 13+** (`Package.swift`, `Info.plist LSMinimumSystemVersion`).
+- `LSUIElement = true` → no Dock, no app switcher; the status item is the only
+  entry point. `Info.plist` is generated by `bundle.sh`, not committed.
