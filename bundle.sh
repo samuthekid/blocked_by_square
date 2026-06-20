@@ -7,12 +7,14 @@ BINARY_PATH=".build/release/${APP_NAME}"
 DO_RUN=false
 DO_TEST=false
 DO_RESET=false
+DO_RELEASE=false
 
 for arg in "$@"; do
   case "$arg" in
     --run)  DO_RUN=true ;;
     --settings) DO_TEST=true ;;
     --reset) DO_RESET=true ;;
+    --release) DO_RELEASE=true ;;
   esac
 done
 
@@ -60,6 +62,36 @@ cat > "${APP_DIR}/Contents/Info.plist" << EOF
 </dict>
 </plist>
 EOF
+
+if $DO_RELEASE; then
+  # Release: Developer ID + Hardened Runtime + notarize + staple.
+  : "${DEVID_IDENTITY:?set DEVID_IDENTITY, e.g. \"Developer ID Application: Name (TEAMID)\"}"
+  : "${APPLE_ID:?set APPLE_ID (Apple Developer account email)}"
+  : "${TEAM_ID:?set TEAM_ID (10-char team identifier)}"
+  # Prompt for the app-specific password — never written to disk or shell history.
+  if [ -z "$APP_PW" ]; then
+    read -rsp "App-specific password (from appleid.apple.com): " APP_PW
+    echo ""
+  fi
+
+  echo "Signing with Hardened Runtime..."
+  codesign --force --options runtime --timestamp \
+    --sign "$DEVID_IDENTITY" "${APP_DIR}"
+
+  echo "Notarizing (this can take a few minutes)..."
+  ditto -c -k --keepParent "${APP_DIR}" "${APP_NAME}.zip"
+  xcrun notarytool submit "${APP_NAME}.zip" \
+    --apple-id "$APPLE_ID" --team-id "$TEAM_ID" --password "$APP_PW" --wait
+  rm -f "${APP_NAME}.zip"
+
+  echo "Stapling ticket..."
+  xcrun stapler staple "${APP_DIR}"
+
+  echo ""
+  echo "✅  Release ready (signed + notarized + stapled): ${APP_DIR}"
+  echo "    Verify: spctl -a -vvv -t install ${APP_DIR}"
+  exit 0
+fi
 
 echo "Signing app bundle..."
 # Use a designated requirement based only on bundle identifier (not binary hash).

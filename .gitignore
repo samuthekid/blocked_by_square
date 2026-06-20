@@ -15,3 +15,6 @@ DerivedData/
 
 # Build artifacts
 bundle.sh.bak
+*.zip
+
+notarize.sh
