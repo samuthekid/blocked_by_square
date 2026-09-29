@@ -27,6 +27,7 @@ mkdir -p "${APP_DIR}/Contents/MacOS"
 mkdir -p "${APP_DIR}/Contents/Resources"
 
 cp "${BINARY_PATH}" "${APP_DIR}/Contents/MacOS/${APP_NAME}"
+cp Resources/AppIcon.icns "${APP_DIR}/Contents/Resources/"
 
 OPEN_SETTINGS_KEY=""
 if $DO_TEST; then
@@ -43,6 +44,8 @@ cat > "${APP_DIR}/Contents/Info.plist" << EOF
     <string>BlockedBySquare</string>
     <key>CFBundleIdentifier</key>
     <string>com.blockedbysquare.app</string>
+    <key>CFBundleIconFile</key>
+    <string>AppIcon</string>
     <key>CFBundleName</key>
     <string>BlockedBySquare</string>
     <key>CFBundleVersion</key>
@@ -87,8 +90,12 @@ if $DO_RELEASE; then
   echo "Stapling ticket..."
   xcrun stapler staple "${APP_DIR}"
 
+  # Zip the stapled app: this is the file to upload to GitHub Releases.
+  ditto -c -k --keepParent "${APP_DIR}" "${APP_NAME}.zip"
+
   echo ""
   echo "✅  Release ready (signed + notarized + stapled): ${APP_DIR}"
+  echo "    Upload: ${APP_NAME}.zip"
   echo "    Verify: spctl -a -vvv -t install ${APP_DIR}"
   exit 0
 fi
@@ -118,5 +125,5 @@ else
 fi
 echo ""
 echo "Usage:"
-echo "  • App activates instantly — your screen is now protected"
-echo "  • Press ESC to stop + lock your Mac"
+echo "  • Press ⌘⇧L (or Lock Now in the menu bar) to lock input"
+echo "  • Press ESC to unlock (Max mode also locks your Mac)"

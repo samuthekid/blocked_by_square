@@ -4,6 +4,7 @@ import SwiftUI
 
 private struct LaunchToggle: View {
   @State private var isOn: Bool
+  @State private var reverting = false
 
   init() {
     _isOn = State(initialValue: SMAppService.mainApp.status == .enabled)
@@ -14,10 +15,28 @@ private struct LaunchToggle: View {
       .toggleStyle(.switch)
       .labelsHidden()
       .onChange(of: isOn) { newValue in
-        if newValue {
-          try? SMAppService.mainApp.register()
-        } else {
-          try? SMAppService.mainApp.unregister()
+        // Setting isOn back after an error fires onChange again. Skip that one.
+        if reverting {
+          reverting = false
+          return
+        }
+        do {
+          if newValue {
+            try SMAppService.mainApp.register()
+          } else {
+            try SMAppService.mainApp.unregister()
+          }
+        } catch {
+          reverting = true
+          isOn = !newValue
+          // Show the alert after this view update finishes.
+          DispatchQueue.main.async {
+            let alert = NSAlert()
+            alert.messageText = "Could Not Change “Open at Login”"
+            alert.informativeText = error.localizedDescription
+            alert.alertStyle = .warning
+            alert.runModal()
+          }
         }
       }
   }

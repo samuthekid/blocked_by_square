@@ -40,6 +40,7 @@ hard-coded for the owner's account.
 | `ShortcutRecorder.swift` | `ShortcutField` captures a key+modifier combo via a local event monitor; key-code formatting helpers. |
 | `OverlayWindow.swift` | One borderless fullscreen window per display, created on lock, destroyed on exit. |
 | `OverlayView.swift` | The glass square: SwiftUI `.glassEffect` on macOS 26+, `NSVisualEffectView` fallback below. |
+| `Resources/AppIcon.icns` | App icon (made from the website `logo.png` with `iconutil`). `bundle.sh` copies it into the bundle. |
 
 ## Flow
 

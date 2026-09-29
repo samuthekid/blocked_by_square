@@ -218,7 +218,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         userInfo: Unmanaged.passUnretained(self).toOpaque()
       )
     else {
-      print("⚠️  Event tap creation failed — re-check Accessibility permission.")
+      abortLock()
       return
     }
 
@@ -229,6 +229,39 @@ class AppDelegate: NSObject, NSApplicationDelegate {
   }
 
   // MARK: - Screen Lock
+
+  /// Tap creation fails when Accessibility access is gone. Undo the lock without
+  /// lockScreen() (Max mode would lock the Mac) and tell the user why.
+  private func abortLock() {
+    isLocked = false
+    mouseTimer?.invalidate()
+    mouseTimer = nil
+    for w in overlayWindows { w.close() }
+    overlayWindows.removeAll()
+    setupGlobalShortcut()
+
+    let alert = NSAlert()
+    alert.messageText = "Could Not Block Input"
+    alert.informativeText = """
+      BlockedBySquare has no Accessibility access, so the lock did not start.
+
+      Turn BlockedBySquare ON in System Settings → Privacy & Security → Accessibility. \
+      If it is already ON, turn it OFF and ON again, then reopen BlockedBySquare.
+      """
+    alert.addButton(withTitle: "Open System Settings")
+    alert.addButton(withTitle: "Cancel")
+    alert.alertStyle = .warning
+    NSApp.activate(ignoringOtherApps: true)
+    if alert.runModal() == .alertFirstButtonReturn { openAccessibilitySettings() }
+  }
+
+  private func openAccessibilitySettings() {
+    if let url = URL(
+      string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")
+    {
+      NSWorkspace.shared.open(url)
+    }
+  }
 
   private func lockScreen() {
     if let handle = dlopen(
@@ -266,19 +299,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
       BlockedBySquare needs Accessibility access to block keyboard and mouse input.
 
       1. Click "Open System Settings" below
-      2. Find "BlockedBySquare" (or Terminal) and toggle it ON
+      2. Find "BlockedBySquare" and toggle it ON
       3. Reopen BlockedBySquare
       """
     alert.addButton(withTitle: "Open System Settings")
     alert.addButton(withTitle: "Quit")
     alert.alertStyle = .warning
 
-    if alert.runModal() == .alertFirstButtonReturn,
-      let url = URL(
-        string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")
-    {
-      NSWorkspace.shared.open(url)
-    }
+    if alert.runModal() == .alertFirstButtonReturn { openAccessibilitySettings() }
     NSApp.terminate(nil)
     return false
   }
