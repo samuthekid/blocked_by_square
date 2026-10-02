@@ -6,36 +6,33 @@ A tiny macOS menu-bar app that blocks all keyboard and mouse input system-wide a
 
 **→ [samuapps.dev/blocked-by-square](https://samuapps.dev/blocked-by-square/)**
 
-Download the latest build from [Releases](../../releases).
+## Download
+
+Get the latest build from [Releases](https://github.com/samuthekid/blocked_by_square/releases/latest). The app is signed and notarized.
+
+Requires macOS 13 or later and an Apple Silicon Mac (arm64 only).
+
+## Use
+
+1. Unzip the download and move `BlockedBySquare.app` to Applications.
+2. Open it. Grant access in System Settings → Privacy & Security → Accessibility, then open it again.
+3. Press ⌘⇧L (or choose Lock Now in the menu bar) to lock. Press ESC to release.
+
+The default security mode is Max. In Max mode, ESC also locks your Mac. In Low mode, ESC only unblocks.
+
+## Privacy
+
+No data is collected and the app uses no network. See the [privacy policy](https://samuapps.dev/blocked-by-square/privacy.html).
 
 ## Build from source
 
 ```bash
 git clone https://github.com/samuthekid/blocked_by_square
 cd blocked_by_square
-./bundle.sh
-open BlockedBySquare.app
+./bundle.sh --run
 ```
 
-Requires Xcode command line tools (`xcode-select --install`) and macOS 13+.
-
-`bundle.sh` flags:
-
-- `--run` — build, sign, and launch the app
-- `--settings` — launch with the Settings window open (handy while iterating on the UI)
-- `--reset` — clear saved settings to defaults; only fires when launching, so pair it: `./bundle.sh --run --reset`
-- `--release` — Developer ID sign + Hardened Runtime + notarize + staple, for distribution. Requires `DEVID_IDENTITY`, `APPLE_ID`, and `TEAM_ID` env vars (and prompts for an app-specific password)
-
-## How it works
-
-- **Input blocking** — a `CGEvent` tap at session scope swallows every keystroke and click before it reaches any app
-- **Overlay** — borderless `NSWindow` per display, just below screen-saver level
-- **Cursor tracking** — 60 Hz `Timer` poll (more reliable across monitors than `NSEvent` routing)
-- **The square** — native glass effect on macOS 26+, `NSVisualEffectView` on older versions
-- **Screen lock** — `SACLockScreenImmediate` from the private `login.framework`, falling back to Ctrl+Cmd+Q
-- **Global shortcut** — `NSEvent.addGlobalMonitorForEvents` while idle
-
-Needs **Accessibility** permission to install the system-wide event tap (System Settings → Privacy & Security → Accessibility).
+Requires Xcode command line tools (`xcode-select --install`). See [CLAUDE.md](CLAUDE.md) for build flags, internals, and the release process.
 
 ## License
 
