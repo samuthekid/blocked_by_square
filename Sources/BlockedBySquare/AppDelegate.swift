@@ -1,4 +1,5 @@
 import AppKit
+import Carbon
 
 class AppDelegate: NSObject, NSApplicationDelegate {
   private var statusItem: NSStatusItem?
@@ -11,8 +12,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
   private var mouseTimer: Timer?
   private(set) var isLocked = false
 
-  // Global shortcut monitor (active only when NOT in lock mode)
-  private var hotkeyMonitor: Any?
+  // Global shortcut hotkey (registered only when NOT in lock mode)
+  private var hotkeyRef: EventHotKeyRef?
+  private var hotkeyHandlerInstalled = false
 
   func applicationDidFinishLaunching(_ notification: Notification) {
     if !checkAccessibility() { return }
@@ -65,20 +67,43 @@ class AppDelegate: NSObject, NSApplicationDelegate {
   // MARK: - Global Shortcut
 
   func setupGlobalShortcut() {
-    if let old = hotkeyMonitor {
-      NSEvent.removeMonitor(old)
-      hotkeyMonitor = nil
+    removeGlobalShortcut()
+
+    // Carbon hotkeys consume the combo, so the frontmost app never sees it.
+    if !hotkeyHandlerInstalled {
+      var spec = EventTypeSpec(
+        eventClass: OSType(kEventClassKeyboard), eventKind: UInt32(kEventHotKeyPressed))
+      let status = InstallEventHandler(
+        GetApplicationEventTarget(),
+        { _, _, refcon in
+          guard let refcon else { return OSStatus(eventNotHandledErr) }
+          let delegate = Unmanaged<AppDelegate>.fromOpaque(refcon).takeUnretainedValue()
+          DispatchQueue.main.async {
+            if !delegate.isLocked { delegate.activateLockMode() }
+          }
+          return noErr
+        }, 1, &spec, Unmanaged.passUnretained(self).toOpaque(), nil)
+      hotkeyHandlerInstalled = status == noErr
     }
 
-    let targetCode = Settings.shared.shortcutKeyCode
-    let targetMods = NSEvent.ModifierFlags(rawValue: Settings.shared.shortcutModifiers)
+    let mods = NSEvent.ModifierFlags(rawValue: Settings.shared.shortcutModifiers)
+    var carbonMods: UInt32 = 0
+    if mods.contains(.command) { carbonMods |= UInt32(cmdKey) }
+    if mods.contains(.shift) { carbonMods |= UInt32(shiftKey) }
+    if mods.contains(.option) { carbonMods |= UInt32(optionKey) }
+    if mods.contains(.control) { carbonMods |= UInt32(controlKey) }
 
-    hotkeyMonitor = NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { [weak self] event in
-      guard let self, !self.isLocked else { return }
-      let mods = event.modifierFlags.intersection([.command, .shift, .control, .option])
-      if Int(event.keyCode) == targetCode && mods == targetMods {
-        DispatchQueue.main.async { self.activateLockMode() }
-      }
+    // Fails if another app owns the combo — leave it unregistered, no crash.
+    let id = EventHotKeyID(signature: OSType(0x4242_5351), id: 1)  // 'BBSQ'
+    RegisterEventHotKey(
+      UInt32(Settings.shared.shortcutKeyCode), carbonMods, id, GetApplicationEventTarget(), 0,
+      &hotkeyRef)
+  }
+
+  func removeGlobalShortcut() {
+    if let ref = hotkeyRef {
+      UnregisterEventHotKey(ref)
+      hotkeyRef = nil
     }
   }
 
@@ -99,11 +124,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     guard !isLocked else { return }
     isLocked = true
 
-    // Tear down shortcut monitor — the event tap blocks everything during lock
-    if let m = hotkeyMonitor {
-      NSEvent.removeMonitor(m)
-      hotkeyMonitor = nil
-    }
+    // Tear down shortcut hotkey — the event tap blocks everything during lock
+    removeGlobalShortcut()
 
     for screen in NSScreen.screens {
       let window = OverlayWindow(screen: screen)

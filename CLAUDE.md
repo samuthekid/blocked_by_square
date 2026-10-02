@@ -45,10 +45,10 @@ hard-coded for the owner's account.
 ## Flow
 
 Idle in the menu bar. **Activate** (global shortcut `⌘⇧L` by default, or "Lock
-Now"): tear down the shortcut monitor, spawn an overlay per screen, start the
+Now"): unregister the shortcut hotkey, spawn an overlay per screen, start the
 60 Hz mouse timer, install the event tap. **Exit** (ESC, key code 53): disable
-the tap, lock the screen if `securityLevel == "max"`, close overlays, re-arm
-the shortcut monitor after 300 ms.
+the tap, lock the screen if `securityLevel == "max"`, close overlays, re-register
+the shortcut hotkey after 300 ms.
 
 ## Gotchas (the non-obvious stuff)
 
@@ -72,10 +72,12 @@ the shortcut monitor after 300 ms.
   back to injecting Ctrl+Cmd+Q. The tap is disabled *before* locking so the
   injected event isn't swallowed.
 
-- **Global monitor vs. event tap are mutually exclusive.** The shortcut
-  monitor (`addGlobalMonitorForEvents`, observe-only) runs *only* when idle;
-  the tap runs *only* when locked. The 300 ms re-arm delay on exit stops the
-  ESC dispatch from re-triggering.
+- **Hotkey vs. event tap are mutually exclusive.** The shortcut is a Carbon
+  hotkey (`RegisterEventHotKey`, so the combo is consumed and never reaches the
+  frontmost app); it is registered *only* when idle, the tap runs *only* when
+  locked. The 300 ms re-arm delay on exit stops the ESC dispatch from
+  re-triggering. `ShortcutField` unregisters the hotkey while recording, or it
+  would swallow the current combo.
 
 - **`CATextLayer` y-coordinates are top-down inside a bottom-up CALayer.**
   `OverlayView.updatePadding` accounts for this — top text frame's maxY =
@@ -88,8 +90,8 @@ the shortcut monitor after 300 ms.
 ## Permissions & platform
 
 - **Accessibility is mandatory** (`AXIsProcessTrustedWithOptions`, checked at
-  launch — alert + System Settings deep link, then quit if denied). Both the
-  event tap and the global monitor need it. The grant is tied to the code
+  launch — alert + System Settings deep link, then quit if denied). The
+  event tap needs it. The grant is tied to the code
   signature — hence the signing note above.
 - **macOS 13+** (`Package.swift`, `Info.plist LSMinimumSystemVersion`).
 - `LSUIElement = true` → no Dock, no app switcher; the status item is the only

@@ -28,6 +28,8 @@ class ShortcutField: NSTextField {
     savedValue = stringValue
     stringValue = "Press shortcut…"
     textColor = .secondaryLabelColor
+    // The hotkey would swallow the current combo before the monitor sees it.
+    (NSApp.delegate as? AppDelegate)?.removeGlobalShortcut()
 
     localMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
       guard let self, self.isRecording else { return event }
@@ -54,6 +56,7 @@ class ShortcutField: NSTextField {
   }
 
   private func stopRecording() {
+    if isRecording { (NSApp.delegate as? AppDelegate)?.setupGlobalShortcut() }
     isRecording = false
     if let m = localMonitor {
       NSEvent.removeMonitor(m)
